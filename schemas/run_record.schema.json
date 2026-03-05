@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": [
+    "run_id",
+    "timestamp",
+    "stage",
+    "result"
+  ],
+  "properties": {
+    "run_id": {
+      "type": "string"
+    },
+    "timestamp": {
+      "type": "string"
+    },
+    "stage": {
+      "type": "string"
+    },
+    "result": {
+      "type": "string",
+      "enum": [
+        "success",
+        "failure",
+        "partial"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

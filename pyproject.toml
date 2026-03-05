@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aiwf"
+version = "0.1.0"
+description = "AI Workflow Framework (CLI-first, artifact- and gate-driven)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "typer>=0.12",
+  "pydantic>=2.6",
+  "PyYAML>=6.0",
+  "rich>=13.7",
+  "jsonschema>=4.22",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "ruff>=0.5",
+]
+
+[project.scripts]
+aiwf = "aiwf.cli.main:app"
+
+[tool.ruff]
+line-length = 100

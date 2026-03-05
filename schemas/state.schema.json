@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": [
+    "workflow_version",
+    "stage"
+  ],
+  "properties": {
+    "workflow_version": {
+      "type": "string"
+    },
+    "stage": {
+      "type": "string",
+      "enum": [
+        "INIT",
+        "SPEC",
+        "PLAN",
+        "DEV",
+        "VERIFY",
+        "SHIP",
+        "DONE",
+        "FAILED"
+      ]
+    },
+    "current_task": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "branch": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "last_run_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "retry_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "gates": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": true
+}
