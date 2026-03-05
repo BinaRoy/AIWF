@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
+from typing import Optional
 
 import typer
 from rich import print
@@ -20,6 +22,28 @@ def _repo_root() -> Path:
 
 def _print_json(payload: dict) -> None:
     print(json.dumps(payload, indent=2, ensure_ascii=False))
+
+
+def _git_changed_paths(repo_root: Path) -> list[str]:
+    proc = subprocess.run(
+        ["git", "status", "--porcelain"],
+        cwd=repo_root,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if proc.returncode != 0:
+        return []
+
+    paths: list[str] = []
+    for line in proc.stdout.splitlines():
+        if len(line) < 4:
+            continue
+        raw = line[3:]
+        if " -> " in raw:
+            raw = raw.split(" -> ", 1)[1]
+        paths.append(raw)
+    return paths
 
 
 @app.command()
@@ -50,19 +74,30 @@ def status_cmd():
 
 @app.command("policy-check")
 def policy_check(
-    paths: list[str] = typer.Argument(..., help="Changed paths to evaluate against policy"),
+    paths: Optional[list[str]] = typer.Argument(
+        None,
+        help="Changed paths to evaluate against policy",
+    ),
+    use_git: bool = typer.Option(False, "--git", help="Use git working tree changes as input paths"),
 ):
     """Evaluate changed paths against configured policy."""
     ws = AIWorkspace(_repo_root())
     ws.ensure_layout()
     cfg = ws.read_config()
-    decision = PolicyEngine(cfg).decide(paths)
+    input_paths: list[str] = list(paths or [])
+    if use_git:
+        input_paths = _git_changed_paths(_repo_root())
+    if not input_paths:
+        _print_json({"allowed": False, "reason": "No input paths"})
+        raise typer.Exit(code=1)
+
+    decision = PolicyEngine(cfg).decide(input_paths)
     out = {
         "allowed": decision.allowed,
         "requires_approval": decision.requires_approval,
         "requires_adr": decision.requires_adr,
         "reason": decision.reason,
-        "paths": paths,
+        "paths": input_paths,
     }
     _print_json(out)
     if not decision.allowed:
