@@ -13,6 +13,7 @@ from aiwf.schema.json_validator import load_schema, validate_payload
 from aiwf.storage.ai_workspace import AIWorkspace
 from aiwf.telemetry.sink import TelemetrySink
 from aiwf.orchestrator.workflow_engine import WorkflowEngine
+from aiwf.vcs.pr_workflow import evaluate_pr_workflow
 
 app = typer.Typer(add_completion=False)
 
@@ -117,6 +118,28 @@ def validate_state():
         _print_json({"valid": False, "error": str(exc)})
         raise typer.Exit(code=1)
     _print_json({"valid": True})
+
+
+@app.command("pr-status")
+def pr_status():
+    """Show PR workflow readiness against git/default-branch policy."""
+    ws = AIWorkspace(_repo_root())
+    ws.ensure_layout()
+    cfg = ws.read_config()
+    _print_json(evaluate_pr_workflow(_repo_root(), cfg).to_dict())
+
+
+@app.command("pr-check")
+def pr_check():
+    """Fail if current branch/repo is not ready for PR-based development."""
+    ws = AIWorkspace(_repo_root())
+    ws.ensure_layout()
+    cfg = ws.read_config()
+    out = evaluate_pr_workflow(_repo_root(), cfg).to_dict()
+    _print_json(out)
+    if not out["ok"]:
+        raise typer.Exit(code=1)
+
 
 @app.command()
 def help_codex():

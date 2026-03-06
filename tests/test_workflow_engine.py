@@ -147,3 +147,40 @@ def test_verify_policy_allowed_runs_gates(tmp_path: Path) -> None:
     policy_events = [e for e in events if e["type"] == "policy_check"]
     assert policy_events
     assert policy_events[-1]["payload"]["allowed"] is True
+
+
+def test_verify_pr_required_blocks_main_branch(tmp_path: Path) -> None:
+    ws = AIWorkspace(tmp_path)
+    ws.ensure_layout()
+    (tmp_path / "src").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "src" / "demo.py").write_text("print('ok')\n", encoding="utf-8")
+
+    _git(tmp_path, "init", "-b", "main")
+    _git(tmp_path, "config", "user.name", "tester")
+    _git(tmp_path, "config", "user.email", "tester@example.com")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "init")
+    _git(tmp_path, "remote", "add", "origin", "https://example.com/repo.git")
+
+    (ws.ai_dir / "config.yaml").write_text(
+        'workflow_version: "0.1"\n'
+        'gates:\n'
+        '  smoke: "python3 -c \\"print(123)\\""\n'
+        "git:\n"
+        "  remote: origin\n"
+        "  default_branch: main\n"
+        "  require_pr: true\n",
+        encoding="utf-8",
+    )
+    telemetry_path = ws.ai_dir / "telemetry" / "events.jsonl"
+    engine = WorkflowEngine(repo_root=tmp_path, ws=ws, telemetry=TelemetrySink(telemetry_path))
+
+    out = engine.verify()
+
+    assert out["ok"] is False
+    assert out["results"] == {}
+    assert not (ws.ai_dir / "artifacts" / "reports" / "smoke.json").exists()
+    events = _read_events(telemetry_path)
+    pr_events = [e for e in events if e["type"] == "pr_check"]
+    assert pr_events
+    assert pr_events[-1]["payload"]["ok"] is False

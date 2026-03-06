@@ -99,3 +99,48 @@ def test_policy_check_git_denies_ai_change(tmp_path: Path, monkeypatch) -> None:
     assert result.exit_code == 1
     out = json.loads(result.output)
     assert out["allowed"] is False
+
+
+def test_pr_check_fails_on_default_branch(tmp_path: Path, monkeypatch) -> None:
+    ws = AIWorkspace(tmp_path)
+    ws.ensure_layout()
+    src_file = tmp_path / "src" / "demo.py"
+    src_file.parent.mkdir(parents=True, exist_ok=True)
+    src_file.write_text("print('v1')\n", encoding="utf-8")
+
+    _git(tmp_path, "init", "-b", "main")
+    _git(tmp_path, "config", "user.name", "tester")
+    _git(tmp_path, "config", "user.email", "tester@example.com")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "init")
+    _git(tmp_path, "remote", "add", "origin", "https://example.com/repo.git")
+
+    monkeypatch.chdir(tmp_path)
+    result = runner.invoke(app, ["pr-check"])
+
+    assert result.exit_code == 1
+    out = json.loads(result.output)
+    assert out["ok"] is False
+
+
+def test_pr_check_passes_on_feature_branch_with_remote(tmp_path: Path, monkeypatch) -> None:
+    ws = AIWorkspace(tmp_path)
+    ws.ensure_layout()
+    src_file = tmp_path / "src" / "demo.py"
+    src_file.parent.mkdir(parents=True, exist_ok=True)
+    src_file.write_text("print('v1')\n", encoding="utf-8")
+
+    _git(tmp_path, "init", "-b", "main")
+    _git(tmp_path, "config", "user.name", "tester")
+    _git(tmp_path, "config", "user.email", "tester@example.com")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "init")
+    _git(tmp_path, "remote", "add", "origin", "https://example.com/repo.git")
+    _git(tmp_path, "checkout", "-b", "feat/pr-flow")
+
+    monkeypatch.chdir(tmp_path)
+    result = runner.invoke(app, ["pr-check"])
+
+    assert result.exit_code == 0
+    out = json.loads(result.output)
+    assert out["ok"] is True

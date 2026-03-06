@@ -21,6 +21,10 @@ paths:
     - "ci/**"
 telemetry:
   enabled: true
+git:
+  remote: origin
+  default_branch: main
+  require_pr: true
 """
 
 @dataclass

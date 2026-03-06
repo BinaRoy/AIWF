@@ -12,6 +12,7 @@ from aiwf.policy.policy_engine import PolicyEngine
 from aiwf.schema.json_validator import load_schema, validate_payload
 from aiwf.storage.ai_workspace import AIWorkspace
 from aiwf.telemetry.sink import TelemetrySink
+from aiwf.vcs.pr_workflow import evaluate_pr_workflow
 
 def _run_id() -> str:
     return datetime.now(timezone.utc).strftime("run_%Y%m%d_%H%M%S")
@@ -80,6 +81,13 @@ class WorkflowEngine:
 
             self.telemetry.emit("run_finished", {"stage": "VERIFY", "ok": ok}, run_id=run_id)
             return {"run_id": run_id, "ok": ok, "results": results}
+
+        git_cfg = (cfg.get("git") or {})
+        if bool(git_cfg.get("require_pr", False)):
+            pr_check = evaluate_pr_workflow(self.repo_root, cfg).to_dict()
+            self.telemetry.emit("pr_check", pr_check, run_id=run_id)
+            if not pr_check["ok"]:
+                return finalize_run(ok=False, results={})
 
         changed_paths = self._git_changed_paths()
         if changed_paths:
