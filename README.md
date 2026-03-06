@@ -1,38 +1,87 @@
-# AIWF (AI Workflow Framework) — CLI-first workflow framework (MVP scaffold)
+# AIWF (AI Workflow Framework)
 
-This repo is a **starter scaffold** for building a general-purpose workflow framework that:
-- externalizes "project memory" into `.ai/`
-- uses **schemas + artifacts + gates + telemetry** to enforce deterministic, auditable workflows
-- allows an **AI executor** to generate changes under policy constraints
-- is designed to later integrate with Git / CI / Dashboard sinks
+AIWF 是一个面向 Agent 协作开发的“流程执行层”。  
+它把研发过程中的阶段、门禁、证据、审计统一成可执行命令，目标是让“规范开发”从文档约定变成机器可判定。
 
-## Quickstart (local)
+## This Project Solves
+
+- 让开发流程可追踪：状态、计划、角色、风险都落盘到 `.ai/`
+- 让质量门禁可执行：`verify` / `validate-*` / `self-check` / `loop-check`
+- 让多角色协作可判定：`roles init/update/check/autopilot`
+- 让 CI 与本地流程一致：PR 中走同一条闭环命令链
+
+## Quickstart (Local)
+
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
-aiwf init
-aiwf verify
-aiwf pr-status
+
+# 初始化自托管默认配置
+aiwf init --self-hosted
+aiwf roles init
+
+# 单入口闭环检查（推荐）
+aiwf roles autopilot --verify
+aiwf audit-summary
 ```
 
-## Repo structure
-- `src/aiwf/` : framework code
-- `.ai/` : project memory (created by `aiwf init`)
-- `schemas/` : JSON Schemas for contracts
-- `AGENTS.md` : how to use Codex CLI/agents in this repo
+## Core Closed-Loop Command
 
-## PR-driven workflow (recommended/default)
-- `aiwf pr-status` : show if current repo state is ready for PR-based development
-- `aiwf pr-check` : same as above, but exits non-zero when not ready
-- `aiwf verify` : when `git.require_pr: true`, verify will fail early unless:
-  - repository has configured remote (default: `origin`)
-  - current branch is not default branch (default: `main`)
+推荐把以下命令作为“唯一放行入口”：
 
-Config lives in `.ai/config.yaml`:
-```yaml
-git:
-  remote: origin
-  default_branch: main
-  require_pr: true
+```bash
+aiwf roles autopilot --verify
 ```
+
+语义：
+- 自动执行验证（`verify`）
+- 自动汇总并判定 `plan/self/loop/roles` 检查
+- 自动推进角色状态并落盘到 `.ai/roles_workflow.json`
+- 任一关键检查失败返回非 0
+
+## New Project + Agent Workflow
+
+在全新工程里，建议固定执行顺序：
+
+```bash
+git fetch origin
+git checkout <feature-branch>
+git rebase origin/main
+aiwf pr-check
+
+aiwf roles autopilot --verify
+aiwf audit-summary
+```
+
+如果 `autopilot` 失败，不进入合并阶段，先按输出的失败项修复再重跑。
+
+## CI Enforcement (PR)
+
+CI workflow: `.github/workflows/aiwf-verify.yml`
+
+PR 到 `main` 时，CI 执行：
+1. `aiwf init --self-hosted`
+2. seed minimal `.ai/plan.json` + `aiwf roles init`
+3. `aiwf roles autopilot --verify`
+4. `aiwf audit-summary`
+
+并上传 `.ai` 证据：
+- `.ai/state.json`
+- `.ai/runs/`
+- `.ai/artifacts/reports/`
+- `.ai/telemetry/events.jsonl`
+
+## Repo Layout
+
+- `src/aiwf/`: CLI 与工作流引擎实现
+- `schemas/`: 关键契约（state/plan/risk/roles/run/gate）
+- `docs/`: 架构、流程、SOP、计划、中文指南
+- `.ai/`: 运行态与审计证据目录
+
+## Documentation Entry
+
+完整流程导航见：
+- `docs/README.md`
+- `docs/process/2026-03-06-closed-loop-flow-map.md`
+- `docs/guide/2026-03-06-aiwf-framework-intro-and-usage-zh.md`

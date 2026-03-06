@@ -25,6 +25,45 @@ git:
   remote: origin
   default_branch: main
   require_pr: true
+process_policy:
+  require_sync_before_dev: true
+  require_pr_before_merge: true
+"""
+
+SELF_HOSTED_CONFIG_YAML = """workflow_version: "0.1"
+gates:
+  unit_tests: "PYTHONPATH=src python3 -m pytest -q"
+paths:
+  allow:
+    - "src/**"
+    - "tests/**"
+    - "schemas/**"
+    - "docs/**"
+    - "README.md"
+    - ".gitignore"
+    - "pyproject.toml"
+    - "AGENTS.md"
+    - ".github/**"
+  deny:
+    - ".git/**"
+  require_approval:
+    - "ci/**"
+  require_adr:
+    - "ci/**"
+telemetry:
+  enabled: true
+git:
+  remote: origin
+  default_branch: main
+  require_pr: true
+process_policy:
+  require_sync_before_dev: true
+  require_pr_before_merge: true
+  fixed_loop:
+    enabled: true
+    required_stage: VERIFY
+    required_gates:
+      - "unit_tests"
 """
 
 @dataclass
@@ -81,3 +120,7 @@ class AIWorkspace:
 
     def write_plan(self, plan: Dict[str, Any]) -> None:
         (self.ai_dir / "plan.json").write_text(json.dumps(plan, indent=2) + "\n", encoding="utf-8")
+
+    def write_self_hosted_config(self) -> None:
+        self.ensure_layout()
+        (self.ai_dir / "config.yaml").write_text(SELF_HOSTED_CONFIG_YAML, encoding="utf-8")

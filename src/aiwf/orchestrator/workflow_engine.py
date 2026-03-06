@@ -106,6 +106,14 @@ class WorkflowEngine:
             if not decision.allowed:
                 return finalize_run(ok=False, results={})
 
+        if not gates_cfg:
+            self.telemetry.emit(
+                "no_gates_configured",
+                {"reason": "No gates configured in .ai/config.yaml"},
+                run_id=run_id,
+            )
+            return finalize_run(ok=False, results={})
+
         results: Dict[str, Any] = {}
         ok = True
         for name, cmd in gates_cfg.items():

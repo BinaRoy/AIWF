@@ -43,6 +43,7 @@ Allowed stage values follow `state.schema.json`:
 ### DEV
 - Entry: PLAN approved.
 - Exit evidence:
+  - latest remote branch state synced before coding
   - minimal implementation complete
   - targeted tests added/updated
   - no undocumented scope expansion
@@ -58,12 +59,17 @@ Allowed stage values follow `state.schema.json`:
 ### SHIP
 - Entry: VERIFY success and no blocking risk.
 - Exit evidence:
+  - development happened on non-default branch
+  - PR opened to default branch
+  - required checks and review passed
+  - PR merged
   - release/change note prepared
   - outstanding risks documented with owner
 
 ### DONE
 - Entry: SHIP accepted.
 - Exit evidence:
+  - merge commit or equivalent recorded in git history
   - final status snapshot written
 
 ### FAILED
@@ -92,3 +98,4 @@ Allowed stage values follow `state.schema.json`:
 - Policy denial: stop gate execution, mark run failure, record reason.
 - Schema mismatch: treat as contract violation, block stage exit.
 - Missing evidence: stage cannot be marked complete.
+- Direct commit to default branch for feature work: treat as process violation.
