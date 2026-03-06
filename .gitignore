@@ -6,6 +6,7 @@ __pycache__/
 .ai/config.yaml
 .ai/state.json
 .ai/plan.json
+.ai/roles_workflow.json
 .ai/risk_register.json
 .ai/runs/
 .ai/telemetry/
