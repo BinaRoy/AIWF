@@ -24,6 +24,8 @@ telemetry:
 git:
   remote: origin
   default_branch: main
+  protected_branches:
+    - main
   require_pr: true
 process_policy:
   require_sync_before_dev: true
@@ -54,7 +56,10 @@ telemetry:
   enabled: true
 git:
   remote: origin
-  default_branch: main
+  default_branch: dev
+  protected_branches:
+    - main
+    - dev
   require_pr: true
 process_policy:
   require_sync_before_dev: true
