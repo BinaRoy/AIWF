@@ -152,6 +152,40 @@ def test_pr_check_passes_on_feature_branch_with_remote(tmp_path: Path, monkeypat
     assert out["ok"] is True
 
 
+def test_pr_check_fails_on_protected_dev_branch(tmp_path: Path, monkeypatch) -> None:
+    ws = AIWorkspace(tmp_path)
+    ws.ensure_layout()
+    src_file = tmp_path / "src" / "demo.py"
+    src_file.parent.mkdir(parents=True, exist_ok=True)
+    src_file.write_text("print('v1')\n", encoding="utf-8")
+
+    _git(tmp_path, "init", "-b", "main")
+    _git(tmp_path, "config", "user.name", "tester")
+    _git(tmp_path, "config", "user.email", "tester@example.com")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "init")
+    _git(tmp_path, "remote", "add", "origin", "https://example.com/repo.git")
+    _git(tmp_path, "checkout", "-b", "dev")
+    (ws.ai_dir / "config.yaml").write_text(
+        'workflow_version: "0.1"\n'
+        "git:\n"
+        "  remote: origin\n"
+        "  default_branch: dev\n"
+        "  protected_branches:\n"
+        "    - main\n"
+        "    - dev\n"
+        "  require_pr: true\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.chdir(tmp_path)
+    result = runner.invoke(app, ["pr-check"])
+
+    assert result.exit_code == 1
+    out = json.loads(result.output)
+    assert out["ok"] is False
+
+
 def test_validate_artifacts_succeeds_with_valid_run_and_gate_reports(
     tmp_path: Path, monkeypatch
 ) -> None:

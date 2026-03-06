@@ -22,7 +22,7 @@ Date: 2026-03-06
 ```bash
 git fetch origin
 git checkout <feature-branch>
-git rebase origin/main
+git rebase origin/dev
 aiwf pr-check
 ```
 
@@ -64,7 +64,14 @@ aiwf audit-summary
 必须同时满足：
 - `aiwf roles autopilot --verify` 成功
 - `aiwf audit-summary` 可读
-- PR 检查通过、审核通过
+- PR（feature -> dev）检查通过、审核通过
+
+### Step E: 阶段性发布同步
+
+当 `dev` 达到阶段目标后：
+- 发起 `dev -> main` PR
+- 重跑同一闭环检查
+- 合并到 `main`
 
 ## 3. 关键落盘产物（证据链）
 

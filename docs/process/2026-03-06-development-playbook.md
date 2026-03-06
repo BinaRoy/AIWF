@@ -10,8 +10,8 @@ This playbook is the execution guide for daily development. Follow it in order t
 
 1. Sync latest repository state before any code changes:
    - `git fetch origin`
-   - `git checkout <feature-branch>` (must not be `main`)
-   - `git rebase origin/main` (or merge equivalent)
+   - `git checkout <feature-branch>` (must not be `main` or `dev`)
+   - `git rebase origin/dev` (or merge equivalent)
    - `aiwf pr-check` (must pass)
 2. Confirm current state:
    - `aiwf status`
@@ -32,7 +32,7 @@ This playbook is the execution guide for daily development. Follow it in order t
    - `.ai/roles_workflow.json`
 9. Create/update PR and request review:
    - push feature branch
-   - open PR to `main`
+   - open PR to `dev`
    - attach verify/test evidence
 10. Merge PR only after checks and review pass.
 
