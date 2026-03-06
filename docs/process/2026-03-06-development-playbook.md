@@ -21,14 +21,15 @@ This playbook is the execution guide for daily development. Follow it in order t
 4. Implement minimal code changes.
 5. Run targeted tests first:
    - `pytest -q tests/test_cli.py` or specific test file
-6. Run full verification:
-   - `aiwf verify`
-7. Validate state contract:
-   - `aiwf validate-state`
+6. Run unified closed-loop gate:
+   - `aiwf roles autopilot --verify`
+7. Generate regulator summary:
+   - `aiwf audit-summary`
 8. Review evidence files:
    - `.ai/artifacts/reports/*.json`
    - `.ai/runs/<run_id>/run.json`
    - `.ai/telemetry/events.jsonl`
+   - `.ai/roles_workflow.json`
 9. Create/update PR and request review:
    - push feature branch
    - open PR to `main`
@@ -53,7 +54,7 @@ This playbook is the execution guide for daily development. Follow it in order t
 - No policy-denied files were modified.
 
 ### VERIFY checklist
-- `aiwf verify` returns success.
+- `aiwf roles autopilot --verify` returns success.
 - Gate reports exist and are readable.
 - Run record includes expected stage/result.
 - Telemetry has both `run_started` and `run_finished`.

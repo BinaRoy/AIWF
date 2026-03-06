@@ -3,6 +3,10 @@ __pycache__/
 *.pyc
 *.egg-info/
 .pytest_cache/
+.ai/config.yaml
+.ai/state.json
+.ai/plan.json
+.ai/risk_register.json
 .ai/runs/
 .ai/telemetry/
 .ai/artifacts/reports/
