@@ -47,7 +47,7 @@ aiwf roles autopilot --verify
 ```bash
 git fetch origin
 git checkout <feature-branch>
-git rebase origin/main
+git rebase origin/dev
 aiwf pr-check
 
 aiwf roles autopilot --verify
@@ -60,7 +60,7 @@ aiwf audit-summary
 
 CI workflow: `.github/workflows/aiwf-verify.yml`
 
-PR 到 `main` 时，CI 执行：
+PR 到 `dev` 或 `main` 时，CI 执行：
 1. `aiwf init --self-hosted`
 2. seed minimal `.ai/plan.json` + `aiwf roles init`
 3. `aiwf roles autopilot --verify`
@@ -71,6 +71,31 @@ PR 到 `main` 时，CI 执行：
 - `.ai/runs/`
 - `.ai/artifacts/reports/`
 - `.ai/telemetry/events.jsonl`
+
+## Branch Strategy (main + dev)
+
+- `main`: 默认分支，仅用于阶段性稳定发布
+- `dev`: 日常开发集成分支（feature 分支通过 PR 合入 `dev`）
+
+日常开发：
+1. 从 `dev` 拉最新并切功能分支
+2. 功能分支通过 PR 合入 `dev`
+
+阶段发布：
+1. 从 `dev` 开 PR 到 `main`
+2. 通过同样闭环检查后合入
+
+建议在 `.ai/config.yaml` 中配置受保护分支：
+
+```yaml
+git:
+  remote: origin
+  default_branch: dev
+  protected_branches:
+    - main
+    - dev
+  require_pr: true
+```
 
 ## Repo Layout
 

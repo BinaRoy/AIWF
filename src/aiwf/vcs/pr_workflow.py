@@ -12,6 +12,7 @@ class PRWorkflowCheck:
     in_git_repo: bool
     remote: str
     default_branch: str
+    protected_branches: list[str]
     branch: Optional[str]
     remote_exists: bool
     reasons: list[str]
@@ -22,6 +23,7 @@ class PRWorkflowCheck:
             "in_git_repo": self.in_git_repo,
             "remote": self.remote,
             "default_branch": self.default_branch,
+            "protected_branches": self.protected_branches,
             "branch": self.branch,
             "remote_exists": self.remote_exists,
             "reasons": self.reasons,
@@ -43,6 +45,11 @@ def evaluate_pr_workflow(repo_root: Path, cfg: Dict[str, Any]) -> PRWorkflowChec
     git_cfg = (cfg.get("git") or {})
     remote = str(git_cfg.get("remote", "origin"))
     default_branch = str(git_cfg.get("default_branch", "main"))
+    configured_protected = git_cfg.get("protected_branches")
+    if isinstance(configured_protected, list) and configured_protected:
+        protected_branches = [str(item) for item in configured_protected]
+    else:
+        protected_branches = [default_branch]
     reasons: list[str] = []
 
     rc, inside = _run_git(repo_root, ["rev-parse", "--is-inside-work-tree"])
@@ -59,14 +66,15 @@ def evaluate_pr_workflow(repo_root: Path, cfg: Dict[str, Any]) -> PRWorkflowChec
 
         if not remote_exists:
             reasons.append(f"Missing remote: {remote}")
-        if branch == default_branch:
-            reasons.append(f"On default branch: {default_branch}")
+        if branch in protected_branches:
+            reasons.append(f"On protected branch: {branch}")
 
     return PRWorkflowCheck(
         ok=len(reasons) == 0,
         in_git_repo=in_git_repo,
         remote=remote,
         default_branch=default_branch,
+        protected_branches=protected_branches,
         branch=branch,
         remote_exists=remote_exists,
         reasons=reasons,

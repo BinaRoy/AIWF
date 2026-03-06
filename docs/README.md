@@ -37,8 +37,9 @@ This folder contains the baseline docs for developing AIWF with predictable proc
 
 Run these in order for each task:
 
-1. `git fetch origin && git rebase origin/main`
+1. `git fetch origin && git rebase origin/dev`
 2. `aiwf pr-check`
 3. `aiwf roles autopilot --verify`
 4. `aiwf audit-summary`
-5. Push branch and open PR, merge after checks/review pass.
+5. Push branch and open PR to `dev`, merge after checks/review pass.
+6. On release milestone, open `dev -> main` PR and pass the same checks.
