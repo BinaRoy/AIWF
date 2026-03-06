@@ -12,7 +12,11 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
 aiwf init
+aiwf status
 aiwf verify
+aiwf validate-state
+aiwf validate-artifacts
+aiwf audit-summary
 aiwf pr-status
 ```
 
@@ -35,4 +39,32 @@ git:
   remote: origin
   default_branch: main
   require_pr: true
+```
+
+## Core command reference
+- `aiwf status`: print current `.ai/state.json`
+- `aiwf policy-check [--git] [paths...]`: evaluate changed paths against policy rules
+- `aiwf validate-state`: validate `.ai/state.json` against `schemas/state.schema.json`
+- `aiwf validate-artifacts`: validate latest run record and gate reports against schemas
+- `aiwf audit-summary`: show stage, latest run result, gate counts, and latest policy decision
+- `aiwf stage set <stage>`: set workflow stage with guardrails (`SHIP` and `DONE`)
+
+## Standard development loop
+```bash
+# 1) sync before development
+git fetch origin
+git checkout <feature-branch>
+git rebase origin/main
+aiwf pr-check
+
+# 2) implement + verify
+pytest -q
+aiwf verify
+aiwf validate-state
+aiwf validate-artifacts
+aiwf audit-summary
+
+# 3) ship via PR
+git push -u origin <feature-branch>
+# open PR to main, wait checks/review, then merge
 ```

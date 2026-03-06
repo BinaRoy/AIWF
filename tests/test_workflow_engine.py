@@ -184,3 +184,22 @@ def test_verify_pr_required_blocks_main_branch(tmp_path: Path) -> None:
     pr_events = [e for e in events if e["type"] == "pr_check"]
     assert pr_events
     assert pr_events[-1]["payload"]["ok"] is False
+
+
+def test_verify_fails_when_no_gates_configured(tmp_path: Path) -> None:
+    ws = AIWorkspace(tmp_path)
+    ws.ensure_layout()
+    (ws.ai_dir / "config.yaml").write_text('workflow_version: "0.1"\ngates: {}\n', encoding="utf-8")
+    telemetry_path = ws.ai_dir / "telemetry" / "events.jsonl"
+    engine = WorkflowEngine(repo_root=tmp_path, ws=ws, telemetry=TelemetrySink(telemetry_path))
+
+    out = engine.verify()
+
+    assert out["ok"] is False
+    assert out["results"] == {}
+    run_record = _load_json(ws.ai_dir / "runs" / out["run_id"] / "run.json")
+    assert run_record["result"] == "failure"
+    assert not list((ws.ai_dir / "artifacts" / "reports").glob("*.json"))
+    events = _read_events(telemetry_path)
+    no_gate_events = [e for e in events if e["type"] == "no_gates_configured"]
+    assert no_gate_events

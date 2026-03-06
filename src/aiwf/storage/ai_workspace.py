@@ -25,6 +25,9 @@ git:
   remote: origin
   default_branch: main
   require_pr: true
+process_policy:
+  require_sync_before_dev: true
+  require_pr_before_merge: true
 """
 
 @dataclass
