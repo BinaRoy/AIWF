@@ -1009,3 +1009,56 @@ def test_roles_autopilot_sets_first_incomplete_role_in_progress(tmp_path: Path, 
     out = json.loads(result.output)
     roles_status = {r["name"]: r["status"] for r in out["roles"]}
     assert roles_status["planner"] == "in_progress"
+
+
+def test_develop_preflight_mode_returns_verified_false(tmp_path: Path, monkeypatch) -> None:
+    ws = AIWorkspace(tmp_path)
+    ws.ensure_layout()
+    _copy_schemas(tmp_path)
+    ws.write_plan({"project_id": "aiwf", "version": 1, "tasks": []})
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["develop", "--no-verify"])
+
+    assert result.exit_code == 0
+    out = json.loads(result.output)
+    assert out["ok"] is True
+    assert out["verified"] is False
+    assert out["mode"] == "preflight"
+
+
+def test_develop_returns_exit_2_for_contract_error(tmp_path: Path, monkeypatch) -> None:
+    ws = AIWorkspace(tmp_path)
+    ws.ensure_layout()
+    _copy_schemas(tmp_path)
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["develop", "--no-verify", "--no-sync-roles"])
+
+    assert result.exit_code == 2
+    out = json.loads(result.output)
+    assert out["ok"] is False
+    assert out["type"] == "contract_error"
+
+
+def test_develop_returns_exit_1_when_verify_fails(tmp_path: Path, monkeypatch) -> None:
+    ws = AIWorkspace(tmp_path)
+    ws.ensure_layout()
+    _copy_schemas(tmp_path)
+    ws.write_plan({"project_id": "aiwf", "version": 1, "tasks": []})
+    (ws.ai_dir / "config.yaml").write_text(
+        'workflow_version: "0.1"\n'
+        "gates:\n"
+        '  unit_tests: "python3 -c \\"import sys; sys.exit(1)\\""\n'
+        "git:\n"
+        "  require_pr: false\n",
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["develop"])
+
+    assert result.exit_code == 1
+    out = json.loads(result.output)
+    assert out["ok"] is False
+    assert out["verified"] is False

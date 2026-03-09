@@ -40,6 +40,17 @@ aiwf roles autopilot --verify
 - 自动推进角色状态并落盘到 `.ai/roles_workflow.json`
 - 任一关键检查失败返回非 0
 
+## Develop Contract (M1)
+
+`aiwf develop` 在 M1 中被定义为“一次受控开发推进运行单元”。
+
+规范入口文档（SoT）：
+- `docs/process/2026-03-09-develop-command-contract.md`
+
+说明：
+- 旧流程文档继续保留用于追溯；
+- 若与 develop 行为定义有冲突，以上述 SoT 为准。
+
 ## New Project + Agent Workflow
 
 在全新工程里，建议固定执行顺序：

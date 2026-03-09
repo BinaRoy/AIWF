@@ -2,10 +2,18 @@
 
 This folder contains the baseline docs for developing AIWF with predictable process and auditable outputs.
 
+## Current Source of Truth
+
+- `process/2026-03-09-develop-command-contract.md`
+  - Active SoT for `aiwf develop` M1 contract, run/artifact boundary, and exit code semantics.
+  - Older docs remain as historical records; if there is overlap, follow this doc first.
+
 ## Document Map
 
 - `architecture/2026-03-06-current-architecture-baseline.md`
   - Current architecture boundaries, runtime flow, and data contracts.
+- `process/2026-03-09-develop-command-contract.md`
+  - M1 contract for controlled `develop` runs and evidence correlation.
 - `process/2026-03-06-governance-and-stage-gates.md`
   - Stage governance, DoD checks, and evidence requirements.
 - `process/2026-03-06-development-playbook.md`

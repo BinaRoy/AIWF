@@ -13,7 +13,7 @@ from aiwf.policy.policy_engine import PolicyEngine
 from aiwf.schema.json_validator import load_schema, validate_payload
 from aiwf.storage.ai_workspace import AIWorkspace
 from aiwf.telemetry.sink import TelemetrySink
-from aiwf.orchestrator.workflow_engine import WorkflowEngine
+from aiwf.orchestrator.workflow_engine import ContractError, WorkflowEngine
 from aiwf.vcs.pr_workflow import evaluate_pr_workflow
 
 app = typer.Typer(add_completion=False)
@@ -379,6 +379,43 @@ def _sync_roles_from_checks(
     return payload
 
 
+def _sync_roles_for_develop(ws: AIWorkspace, run_id: str) -> dict:
+    try:
+        payload = _load_roles_workflow(ws, create=True)
+        _validate_roles_workflow(payload)
+    except Exception as exc:
+        return {"ok": False, "error": _error_message(exc)}
+
+    roles = payload.get("roles") or []
+    in_progress = [r for r in roles if str((r or {}).get("status")) == "in_progress"]
+    if len(in_progress) == 0:
+        for role in roles:
+            if str((role or {}).get("status")) == "pending":
+                role["status"] = "in_progress"
+                break
+    elif len(in_progress) > 1:
+        return {"ok": False, "error": "More than one role is in_progress"}
+
+    payload["updated_at"] = datetime.now(timezone.utc).isoformat()
+    try:
+        _validate_roles_workflow(payload)
+    except Exception as exc:
+        return {"ok": False, "error": _error_message(exc)}
+    _roles_path(ws).write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    active = None
+    for role in payload.get("roles") or []:
+        if str((role or {}).get("status")) == "in_progress":
+            active = str(role.get("name"))
+            break
+    return {
+        "ok": True,
+        "active_role": active,
+        "counts": _roles_counts(payload),
+        "evidence_anchor": f".ai/runs/{run_id}/run.json",
+    }
+
+
 def _git_changed_paths(repo_root: Path) -> list[str]:
     proc = subprocess.run(
         ["git", "status", "--porcelain"],
@@ -425,6 +462,51 @@ def verify():
     engine = WorkflowEngine(repo_root=_repo_root(), ws=ws, telemetry=telemetry)
     out = engine.verify()
     _print_json(out)
+
+
+@app.command()
+def develop(
+    verify: bool = typer.Option(True, "--verify/--no-verify", help="Run verify step in this develop run."),
+    sync_roles: bool = typer.Option(
+        True,
+        "--sync-roles/--no-sync-roles",
+        help="Run role sync pre-step before verify.",
+    ),
+    strict_plan: bool = typer.Option(
+        True,
+        "--strict-plan/--no-strict-plan",
+        help="Require valid .ai/plan.json for this run.",
+    ),
+    run_id: Optional[str] = typer.Option(None, "--run-id", help="Optional run id override."),
+):
+    """Run one controlled development unit and emit run-linked evidence."""
+    ws = AIWorkspace(_repo_root())
+    ws.ensure_layout()
+    telemetry = TelemetrySink(ws.ai_dir / "telemetry" / "events.jsonl")
+    engine = WorkflowEngine(repo_root=_repo_root(), ws=ws, telemetry=telemetry)
+    try:
+        out = engine.develop(
+            run_verify=verify,
+            sync_roles=sync_roles,
+            strict_plan=strict_plan,
+            run_id=run_id,
+            roles_sync=lambda rid: _sync_roles_for_develop(ws, rid),
+        )
+    except ContractError as exc:
+        _print_json(
+            {
+                "ok": False,
+                "error": _error_message(exc),
+                "type": "contract_error",
+                "verified": False,
+                "mode": "full" if verify else "preflight",
+            }
+        )
+        raise typer.Exit(code=2)
+
+    _print_json(out)
+    if not out.get("ok"):
+        raise typer.Exit(code=1)
 
 
 @app.command("status")

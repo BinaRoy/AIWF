@@ -203,3 +203,94 @@ def test_verify_fails_when_no_gates_configured(tmp_path: Path) -> None:
     events = _read_events(telemetry_path)
     no_gate_events = [e for e in events if e["type"] == "no_gates_configured"]
     assert no_gate_events
+
+
+def test_develop_writes_unified_run_and_develop_record(tmp_path: Path) -> None:
+    ws = AIWorkspace(tmp_path)
+    ws.ensure_layout()
+    ws.write_plan({"project_id": "p1", "version": 1, "tasks": []})
+    (ws.ai_dir / "config.yaml").write_text(
+        'workflow_version: "0.1"\n'
+        'gates:\n'
+        '  smoke: "python3 -c \\"print(123)\\""\n',
+        encoding="utf-8",
+    )
+
+    repo_root = Path(__file__).resolve().parents[1]
+    engine = WorkflowEngine(
+        repo_root=repo_root,
+        ws=ws,
+        telemetry=TelemetrySink(ws.ai_dir / "telemetry" / "events.jsonl"),
+    )
+    out = engine.develop(
+        run_verify=True,
+        sync_roles=True,
+        strict_plan=True,
+        roles_sync=lambda _rid: {"ok": True},
+    )
+
+    assert out["ok"] is True
+    assert out["verified"] is True
+    run_id = out["run_id"]
+    run_record = _load_json(ws.ai_dir / "runs" / run_id / "run.json")
+    assert run_record["stage"] == "DEVELOP"
+    assert run_record["run_type"] == "develop"
+    assert run_record["result"] == "success"
+    assert run_record["verified"] is True
+    assert "verify" in run_record["steps"]
+
+    develop_record = _load_json(ws.ai_dir / "runs" / run_id / "develop.json")
+    assert develop_record["run_id"] == run_id
+    assert develop_record["artifacts"]["run_record"] == f".ai/runs/{run_id}/run.json"
+    assert ".ai/artifacts/reports/smoke.json" in develop_record["artifacts"]["gate_reports"]
+
+
+def test_develop_preflight_mode_sets_verified_false_and_partial_result(tmp_path: Path) -> None:
+    ws = AIWorkspace(tmp_path)
+    ws.ensure_layout()
+    ws.write_plan({"project_id": "p1", "version": 1, "tasks": []})
+    repo_root = Path(__file__).resolve().parents[1]
+    engine = WorkflowEngine(
+        repo_root=repo_root,
+        ws=ws,
+        telemetry=TelemetrySink(ws.ai_dir / "telemetry" / "events.jsonl"),
+    )
+
+    out = engine.develop(
+        run_verify=False,
+        sync_roles=True,
+        strict_plan=True,
+        roles_sync=lambda _rid: {"ok": True},
+    )
+
+    assert out["ok"] is True
+    assert out["verified"] is False
+    assert out["mode"] == "preflight"
+    run_record = _load_json(ws.ai_dir / "runs" / out["run_id"] / "run.json")
+    assert run_record["result"] == "partial"
+    assert run_record["verified"] is False
+
+
+def test_develop_contract_error_writes_failure_records(tmp_path: Path) -> None:
+    ws = AIWorkspace(tmp_path)
+    ws.ensure_layout()
+    repo_root = Path(__file__).resolve().parents[1]
+    engine = WorkflowEngine(
+        repo_root=repo_root,
+        ws=ws,
+        telemetry=TelemetrySink(ws.ai_dir / "telemetry" / "events.jsonl"),
+    )
+
+    try:
+        engine.develop(run_verify=False, sync_roles=False, strict_plan=True)
+        assert False, "Expected contract error"
+    except ValueError as exc:
+        assert "Missing .ai/plan.json" in str(exc)
+
+    state = ws.read_state()
+    run_id = state["last_run_id"]
+    assert run_id
+    run_record = _load_json(ws.ai_dir / "runs" / run_id / "run.json")
+    assert run_record["result"] == "failure"
+    develop_record = _load_json(ws.ai_dir / "runs" / run_id / "develop.json")
+    assert develop_record["error"]["type"] == "ContractError"
