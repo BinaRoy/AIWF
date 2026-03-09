@@ -7,6 +7,8 @@ Status: Active Source of Truth (SoT) for `aiwf develop` in M1.
 
 This document defines the contract for `aiwf develop` as a controlled development run unit.
 For any overlap, this document has higher priority than older process docs.
+Active requirements priority/order is maintained in:
+- `2026-03-09-development-requirements-entry.md`
 
 ## 2. Command Definition
 

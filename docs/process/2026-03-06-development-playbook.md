@@ -6,6 +6,10 @@ Date: 2026-03-06
 
 This playbook is the execution guide for daily development. Follow it in order to keep AIWF changes traceable and policy-compliant.
 
+Priority note:
+- Active development requirements and ordering are defined in `2026-03-09-development-requirements-entry.md`.
+- `aiwf develop` behavior contract is defined in `2026-03-09-develop-command-contract.md`.
+
 ## 2. Single Task Workflow
 
 1. Sync latest repository state before any code changes:
@@ -21,8 +25,9 @@ This playbook is the execution guide for daily development. Follow it in order t
 4. Implement minimal code changes.
 5. Run targeted tests first:
    - `pytest -q tests/test_cli.py` or specific test file
-6. Run unified closed-loop gate:
-   - `aiwf roles autopilot --verify`
+6. Run controlled develop unit:
+   - `aiwf develop`
+   - If preflight only is needed: `aiwf develop --no-verify` (not release-ready)
 7. Generate regulator summary:
    - `aiwf audit-summary`
 8. Review evidence files:
@@ -54,7 +59,7 @@ This playbook is the execution guide for daily development. Follow it in order t
 - No policy-denied files were modified.
 
 ### VERIFY checklist
-- `aiwf roles autopilot --verify` returns success.
+- `aiwf develop` with verify enabled returns success.
 - Gate reports exist and are readable.
 - Run record includes expected stage/result.
 - Telemetry has both `run_started` and `run_finished`.

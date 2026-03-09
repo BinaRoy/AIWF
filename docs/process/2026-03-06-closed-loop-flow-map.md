@@ -4,11 +4,12 @@ Date: 2026-03-06
 
 ## 1. 入口
 
-从这三个入口开始：
+从这三个入口开始（优先顺序）：
 
 1. `README.md`（项目定位与快速上手）
 2. `docs/README.md`（文档导航索引）
-3. 本文档（闭环步骤图 + 命令 + 产物）
+3. `docs/process/2026-03-09-development-requirements-entry.md`（开发需求入口 SoT）
+4. 本文档（闭环步骤图 + 命令 + 产物）
 
 ## 2. 单任务闭环（从开始到放行）
 
@@ -33,19 +34,19 @@ aiwf pr-check
 
 命令：
 ```bash
-aiwf roles autopilot --verify
+aiwf develop
 ```
 
-内部会自动执行：
-- `verify`
-- plan/self/loop/roles 判定
-- 角色状态自动推进并落盘
+说明：
+- `aiwf develop` 是受控开发推进运行单元
+- 默认包含 roles sync 前置步骤与 verify
+- 仅在 preflight 场景才使用 `aiwf develop --no-verify`（不表示可放行）
 
 通过条件：
-- `autopilot` 返回 0
+- `develop` 返回 0，且 `verified=true`
 
 失败处理：
-- 读取 `autopilot` 输出中的 `checks`
+- 读取 `develop` 输出中的 `steps`
 - 修复对应项后重跑
 
 ### Step C: 审计摘要
@@ -62,7 +63,7 @@ aiwf audit-summary
 ### Step D: 合并前要求
 
 必须同时满足：
-- `aiwf roles autopilot --verify` 成功
+- `aiwf develop` 成功且 `verified=true`
 - `aiwf audit-summary` 可读
 - PR（feature -> dev）检查通过、审核通过
 
@@ -88,7 +89,7 @@ aiwf audit-summary
 Agent 每次任务必须遵循：
 
 1. 先执行 `aiwf pr-check`
-2. 开发后执行 `aiwf roles autopilot --verify`
+2. 开发后执行 `aiwf develop`
 3. 生成 `aiwf audit-summary`
 4. 失败则修复，不进入 PR 合并阶段
 

@@ -4,6 +4,8 @@ This folder contains the baseline docs for developing AIWF with predictable proc
 
 ## Current Source of Truth
 
+- `process/2026-03-09-development-requirements-entry.md`
+  - Active SoT for development requirements priority and execution order.
 - `process/2026-03-09-develop-command-contract.md`
   - Active SoT for `aiwf develop` M1 contract, run/artifact boundary, and exit code semantics.
   - Older docs remain as historical records; if there is overlap, follow this doc first.
@@ -12,6 +14,8 @@ This folder contains the baseline docs for developing AIWF with predictable proc
 
 - `architecture/2026-03-06-current-architecture-baseline.md`
   - Current architecture boundaries, runtime flow, and data contracts.
+- `process/2026-03-09-development-requirements-entry.md`
+  - Unified entry for active development requirements and priority.
 - `process/2026-03-09-develop-command-contract.md`
   - M1 contract for controlled `develop` runs and evidence correlation.
 - `process/2026-03-06-governance-and-stage-gates.md`
@@ -47,7 +51,7 @@ Run these in order for each task:
 
 1. `git fetch origin && git rebase origin/dev`
 2. `aiwf pr-check`
-3. `aiwf roles autopilot --verify`
+3. `aiwf develop`
 4. `aiwf audit-summary`
 5. Push branch and open PR to `dev`, merge after checks/review pass.
 6. On release milestone, open `dev -> main` PR and pass the same checks.

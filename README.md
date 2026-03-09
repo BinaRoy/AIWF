@@ -22,23 +22,26 @@ aiwf init --self-hosted
 aiwf roles init
 
 # 单入口闭环检查（推荐）
-aiwf roles autopilot --verify
+aiwf develop
 aiwf audit-summary
 ```
 
 ## Core Closed-Loop Command
 
-推荐把以下命令作为“唯一放行入口”：
+推荐把以下命令作为“主放行入口”：
 
 ```bash
-aiwf roles autopilot --verify
+aiwf develop
 ```
 
 语义：
-- 自动执行验证（`verify`）
-- 自动汇总并判定 `plan/self/loop/roles` 检查
-- 自动推进角色状态并落盘到 `.ai/roles_workflow.json`
-- 任一关键检查失败返回非 0
+- 以一个 `run_id` 组织一次受控开发推进
+- 默认包含 roles sync + verify
+- 输出 `verified` 状态用于区分 full/preflight
+- 任一关键步骤失败返回非 0
+
+兼容入口（保留）：
+- `aiwf roles autopilot --verify`
 
 ## Develop Contract (M1)
 
@@ -51,6 +54,14 @@ aiwf roles autopilot --verify
 - 旧流程文档继续保留用于追溯；
 - 若与 develop 行为定义有冲突，以上述 SoT 为准。
 
+## Development Requirements Entry (M1)
+
+固定开发需求入口文档（SoT）：
+- `docs/process/2026-03-09-development-requirements-entry.md`
+
+说明：
+- 当前阶段的需求优先级、执行顺序、边界与完成标准统一在该文档维护。
+
 ## New Project + Agent Workflow
 
 在全新工程里，建议固定执行顺序：
@@ -61,11 +72,11 @@ git checkout <feature-branch>
 git rebase origin/dev
 aiwf pr-check
 
-aiwf roles autopilot --verify
+aiwf develop
 aiwf audit-summary
 ```
 
-如果 `autopilot` 失败，不进入合并阶段，先按输出的失败项修复再重跑。
+如果 `develop` 失败，不进入合并阶段，先按输出的失败项修复再重跑。
 
 ## CI Enforcement (PR)
 
@@ -74,7 +85,7 @@ CI workflow: `.github/workflows/aiwf-verify.yml`
 PR 到 `dev` 或 `main` 时，CI 执行：
 1. `aiwf init --self-hosted`
 2. seed minimal `.ai/plan.json` + `aiwf roles init`
-3. `aiwf roles autopilot --verify`
+3. `aiwf develop`
 4. `aiwf audit-summary`
 
 并上传 `.ai` 证据：
