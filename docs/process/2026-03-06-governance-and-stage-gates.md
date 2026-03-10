@@ -1,10 +1,21 @@
 # AIWF Governance and Stage Gates
 
 Date: 2026-03-06
+Status: Historical process contract, not current SoT.
+
+If this document conflicts with current behavior, follow:
+- `docs/process/2026-03-09-development-requirements-entry.md`
+- `docs/process/2026-03-09-develop-command-contract.md`
+- `docs/architecture/2026-03-10-m1-product-boundary-and-entrypoint.md`
 
 ## 1. Purpose
 
 This document defines the process contract for self-hosted AIWF development, so every phase has clear entry/exit criteria and auditable evidence.
+
+Current product boundary note:
+- This contract is scoped to AIWF M1.
+- The current supported framing is a Python self-hosted repository using `.ai/`, git/PR rules, JSON-schema contracts, and local gate commands.
+- It should not be read as a claim of universal repository integration.
 
 ## 2. Stage Model
 
@@ -51,8 +62,8 @@ Allowed stage values follow `state.schema.json`:
 ### VERIFY
 - Entry: DEV changes ready for quality checks.
 - Exit evidence:
-  - `aiwf verify` executed
-  - `.ai/artifacts/reports/*.json` updated
+  - `aiwf develop` executed with verify enabled, or `aiwf verify` executed as a low-level gate run
+  - `.ai/artifacts/reports/<run_id>/*.json` updated
   - `.ai/runs/<run_id>/run.json` created
   - `.ai/telemetry/events.jsonl` contains run events
 
@@ -88,7 +99,7 @@ Allowed stage values follow `state.schema.json`:
 ## 5. Required Artifacts
 
 - State: `.ai/state.json`
-- Gate reports: `.ai/artifacts/reports/<gate>.json`
+- Gate reports: `.ai/artifacts/reports/<run_id>/<gate>.json`
 - Run record: `.ai/runs/<run_id>/run.json`
 - Telemetry: `.ai/telemetry/events.jsonl`
 - Plan docs: `docs/plans/*.md`

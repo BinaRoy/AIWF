@@ -1,6 +1,12 @@
 # AIWF Current Architecture Baseline
 
 Date: 2026-03-06
+Status: Historical baseline, not current SoT.
+
+If this document conflicts with current behavior, follow:
+- `docs/process/2026-03-09-development-requirements-entry.md`
+- `docs/process/2026-03-09-develop-command-contract.md`
+- `docs/architecture/2026-03-10-m1-product-boundary-and-entrypoint.md`
 
 ## 1. System Goal
 

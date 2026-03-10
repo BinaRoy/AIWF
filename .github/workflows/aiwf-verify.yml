@@ -1,4 +1,4 @@
-name: AIWF Verify
+name: AIWF Develop Gate
 
 on:
   pull_request:
@@ -39,9 +39,9 @@ jobs:
           JSON
           aiwf roles init
 
-      - name: Run unified closed-loop check
+      - name: Run primary develop gate
         run: |
-          aiwf roles autopilot --verify
+          aiwf develop
           aiwf audit-summary
 
       - name: Upload AIWF artifacts

@@ -1,4 +1,9 @@
 # AIWF Phased Development Implementation Plan
+Status: Historical implementation plan, not current SoT.
+
+If this plan conflicts with current behavior or priorities, follow:
+- `docs/process/2026-03-09-development-requirements-entry.md`
+- `docs/process/2026-03-09-develop-command-contract.md`
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 

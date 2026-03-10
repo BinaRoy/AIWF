@@ -1,10 +1,20 @@
 # AIWF Development Playbook
 
 Date: 2026-03-06
+Status: Historical playbook, not current SoT.
+
+If this playbook conflicts with current behavior, follow:
+- `docs/process/2026-03-09-development-requirements-entry.md`
+- `docs/process/2026-03-09-develop-command-contract.md`
+- `docs/architecture/2026-03-10-m1-product-boundary-and-entrypoint.md`
 
 ## 1. Purpose
 
 This playbook is the execution guide for daily development. Follow it in order to keep AIWF changes traceable and policy-compliant.
+
+Priority note:
+- Active development requirements and ordering are defined in `2026-03-09-development-requirements-entry.md`.
+- `aiwf develop` behavior contract is defined in `2026-03-09-develop-command-contract.md`.
 
 ## 2. Single Task Workflow
 
@@ -21,12 +31,13 @@ This playbook is the execution guide for daily development. Follow it in order t
 4. Implement minimal code changes.
 5. Run targeted tests first:
    - `pytest -q tests/test_cli.py` or specific test file
-6. Run unified closed-loop gate:
-   - `aiwf roles autopilot --verify`
+6. Run controlled develop unit:
+   - `aiwf develop`
+   - If preflight only is needed: `aiwf develop --no-verify` (not release-ready)
 7. Generate regulator summary:
    - `aiwf audit-summary`
 8. Review evidence files:
-   - `.ai/artifacts/reports/*.json`
+   - `.ai/artifacts/reports/<run_id>/*.json`
    - `.ai/runs/<run_id>/run.json`
    - `.ai/telemetry/events.jsonl`
    - `.ai/roles_workflow.json`
@@ -54,7 +65,7 @@ This playbook is the execution guide for daily development. Follow it in order t
 - No policy-denied files were modified.
 
 ### VERIFY checklist
-- `aiwf roles autopilot --verify` returns success.
+- `aiwf develop` with verify enabled returns success.
 - Gate reports exist and are readable.
 - Run record includes expected stage/result.
 - Telemetry has both `run_started` and `run_finished`.

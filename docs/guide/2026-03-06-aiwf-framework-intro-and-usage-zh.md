@@ -4,7 +4,7 @@ Date: 2026-03-06
 
 ## 1. 这个框架规范了什么
 
-AIWF 不是单纯的命令集合，而是一套“可执行的工程治理规范”。它主要规范了：
+AIWF 不是单纯的命令集合，而是一套“可执行的流程运行时约束”。它主要规范了：
 
 1. 开发阶段规范  
 - 用统一阶段表示项目状态（INIT/SPEC/PLAN/DEV/VERIFY/SHIP/DONE/FAILED）。
@@ -18,24 +18,35 @@ AIWF 不是单纯的命令集合，而是一套“可执行的工程治理规范
 4. 流程门禁规范  
 - 用 policy、PR 规则、固定闭环检查阻止“绕流程开发”。
 
-5. 多角色协作规范  
-- 用角色工作流（planner/implementer/reviewer/tester/supervisor）形成可判定交接。
+5. 角色状态治理
+- 用角色工作流（planner/implementer/reviewer/tester/supervisor）记录可判定协作状态与证据映射。
+
+## 1.1 当前版本边界
+
+当前版本应按 M1 理解：
+
+- 只覆盖 workspace initialization、workflow state、basic development loop、verification gates、artifact recording
+- 当前更适合 Python self-hosted repository
+- 当前不是“任意工程可直接通用接入”的插件化平台
+- 当前不是全能治理系统
+- `roles` 当前是角色状态治理能力，不是严格意义上的多角色协作编排系统
 
 ## 2. 这个框架已经实现了什么
 
 核心能力（当前已可用）：
 
 - 工作区初始化：`aiwf init --self-hosted`
+- 主闭环入口：`aiwf develop`
 - 验证执行：`aiwf verify`
 - 契约校验：`aiwf validate-state`、`aiwf validate-artifacts`
 - 监管摘要：`aiwf audit-summary`
 - 闭环检查：`aiwf self-check`、`aiwf loop-check`
-- 角色编排：`aiwf roles init/status/check/update/autopilot`
+- 角色状态治理：`aiwf roles init/status/check/update/autopilot`
 - 风险治理：`aiwf risk status/waive`
 - PR 门禁：`aiwf pr-check/pr-status`
-- CI 自动闭环：PR 中可用 `aiwf roles autopilot --verify` 作为单入口门禁
+- CI 自动闭环：PR 中以 `aiwf develop` 作为唯一主入口
 
-## 3. 在全新工程中，如何结合 Agent 高效开发
+## 3. 在 Python self-hosted 工程中，如何结合 Agent 高效开发
 
 ### 3.1 初始化（一次性）
 
@@ -60,12 +71,14 @@ git fetch origin
 git checkout <feature-branch>
 git rebase origin/main
 aiwf pr-check
-aiwf roles autopilot --verify
+aiwf develop
 aiwf audit-summary
 ```
 
 解释：
-- `roles autopilot --verify` 会自动执行验证并根据结果推进角色状态。
+- `aiwf develop` 是唯一主闭环入口。
+- `aiwf verify` 是底层 gate executor，可独立调用，但不是主放行入口。
+- `roles autopilot` 只负责辅助角色状态推进，不承担主闭环入口语义。
 - `audit-summary` 提供统一视图，便于人和 Agent 做继续/阻断决策。
 
 ### 3.4 PR 与 CI
@@ -74,26 +87,29 @@ aiwf audit-summary
 
 1. `aiwf init --self-hosted`
 2. `aiwf roles init`
-3. `aiwf roles autopilot --verify`
+3. `aiwf develop`
 4. `aiwf audit-summary`
 
 保证“本地规则”和“PR 规则”一致，避免本地过、线上挂的流程分叉。
 
 ## 4. 有效利用这个框架的建议
 
-1. 把 `roles autopilot --verify` 当作唯一放行入口  
+1. 把 `aiwf develop` 当作唯一主放行入口
 - 不要同时维护多套“手工检查清单”。
 
-2. 让 Agent 输出“证据导向结果”，不是口头结论  
+2. 把 `roles` 理解为角色状态治理，而不是完整协作编排
+- 它当前更像可判定的协作状态与证据映射。
+
+3. 让 Agent 输出“证据导向结果”，不是口头结论
 - 例如：run_id、gate report、summary JSON。
 
-3. 对高风险变更提前建 risk 条目  
+4. 对高风险变更提前建 risk 条目
 - 用 `aiwf risk waive` 管理临时豁免并设置过期时间。
 
-4. 限制“无计划编码”  
+5. 限制“无计划编码”
 - 没有 `.ai/plan.json` 或 plan 不合法时，不进入实现阶段。
 
-5. 统一约束入口写入 `AGENTS.md`  
+6. 统一约束入口写入 `AGENTS.md`
 - 明确必跑命令和失败后的处理方式，降低协作偏差。
 
 ## 5. 一句话实践原则

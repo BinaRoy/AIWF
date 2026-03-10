@@ -66,7 +66,7 @@ process_policy:
   require_pr_before_merge: true
   fixed_loop:
     enabled: true
-    required_stage: VERIFY
+    required_stage: DEV
     required_gates:
       - "unit_tests"
 """
@@ -99,8 +99,11 @@ class AIWorkspace:
                         "current_task": None,
                         "branch": None,
                         "last_run_id": None,
+                        "last_run_type": None,
+                        "last_run_result": None,
                         "retry_count": 0,
                         "gates": {},
+                        "plan_progress": None,
                     },
                     indent=2,
                 )

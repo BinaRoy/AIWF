@@ -16,6 +16,7 @@ class GateSpec:
 
 @dataclass
 class GateResult:
+    run_id: str
     name: str
     status: str  # pass/fail/skip
     command: Optional[str]
@@ -35,7 +36,7 @@ class GateEngine:
     def _env_info(self) -> Dict[str, Any]:
         return {"platform": platform.platform(), "python": platform.python_version()}
 
-    def run(self, spec: GateSpec) -> GateResult:
+    def run(self, spec: GateSpec, *, run_id: str) -> GateResult:
         ts0 = datetime.now(timezone.utc).isoformat()
         t0 = time.time()
         exit_code = None
@@ -61,6 +62,7 @@ class GateEngine:
         dt = time.time() - t0
 
         result = GateResult(
+            run_id=run_id,
             name=spec.name,
             status=status,
             command=spec.command,
