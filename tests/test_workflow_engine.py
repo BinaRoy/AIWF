@@ -65,7 +65,7 @@ def test_verify_artifacts_follow_json_schemas(tmp_path: Path) -> None:
     run_id = out["run_id"]
 
     gate_schema = _load_json(repo_root / "schemas" / "gate_result.schema.json")
-    gate_report = _load_json(ws.ai_dir / "artifacts" / "reports" / "smoke.json")
+    gate_report = _load_json(ws.ai_dir / "artifacts" / "reports" / run_id / "smoke.json")
     validate(gate_report, gate_schema)
 
     run_schema = _load_json(repo_root / "schemas" / "run_record.schema.json")
@@ -141,7 +141,7 @@ def test_verify_policy_allowed_runs_gates(tmp_path: Path) -> None:
 
     assert out["ok"] is True
     assert out["results"]["smoke"]["status"] == "pass"
-    assert (ws.ai_dir / "artifacts" / "reports" / "smoke.json").exists()
+    assert (ws.ai_dir / "artifacts" / "reports" / out["run_id"] / "smoke.json").exists()
 
     events = _read_events(telemetry_path)
     policy_events = [e for e in events if e["type"] == "policy_check"]
@@ -242,7 +242,7 @@ def test_develop_writes_unified_run_and_develop_record(tmp_path: Path) -> None:
     develop_record = _load_json(ws.ai_dir / "runs" / run_id / "develop.json")
     assert develop_record["run_id"] == run_id
     assert develop_record["artifacts"]["run_record"] == f".ai/runs/{run_id}/run.json"
-    assert ".ai/artifacts/reports/smoke.json" in develop_record["artifacts"]["gate_reports"]
+    assert f".ai/artifacts/reports/{run_id}/smoke.json" in develop_record["artifacts"]["gate_reports"]
 
 
 def test_develop_preflight_mode_sets_verified_false_and_partial_result(tmp_path: Path) -> None:
@@ -269,6 +269,90 @@ def test_develop_preflight_mode_sets_verified_false_and_partial_result(tmp_path:
     run_record = _load_json(ws.ai_dir / "runs" / out["run_id"] / "run.json")
     assert run_record["result"] == "partial"
     assert run_record["verified"] is False
+
+
+def test_develop_keeps_global_stage_when_verify_runs_as_nested_step(tmp_path: Path) -> None:
+    ws = AIWorkspace(tmp_path)
+    ws.ensure_layout()
+    ws.write_plan({"project_id": "p1", "version": 1, "tasks": []})
+    state = ws.read_state()
+    state["stage"] = "DEV"
+    ws.write_state(state)
+    (ws.ai_dir / "config.yaml").write_text(
+        'workflow_version: "0.1"\n'
+        'gates:\n'
+        '  smoke: "python3 -c \\"print(123)\\""\n',
+        encoding="utf-8",
+    )
+
+    repo_root = Path(__file__).resolve().parents[1]
+    engine = WorkflowEngine(
+        repo_root=repo_root,
+        ws=ws,
+        telemetry=TelemetrySink(ws.ai_dir / "telemetry" / "events.jsonl"),
+    )
+
+    out = engine.develop(
+        run_verify=True,
+        sync_roles=True,
+        strict_plan=True,
+        roles_sync=lambda _rid: {"ok": True},
+    )
+
+    assert out["ok"] is True
+    state = ws.read_state()
+    assert state["stage"] == "DEV"
+    assert state["last_run_id"] == out["run_id"]
+
+
+def test_verify_writes_gate_reports_under_run_scoped_directory(tmp_path: Path) -> None:
+    ws = AIWorkspace(tmp_path)
+    ws.ensure_layout()
+    (ws.ai_dir / "config.yaml").write_text(
+        'workflow_version: "0.1"\n'
+        'gates:\n'
+        '  smoke: "python3 -c \\"print(123)\\""\n',
+        encoding="utf-8",
+    )
+
+    repo_root = Path(__file__).resolve().parents[1]
+    engine = WorkflowEngine(
+        repo_root=repo_root,
+        ws=ws,
+        telemetry=TelemetrySink(ws.ai_dir / "telemetry" / "events.jsonl"),
+    )
+
+    out = engine.verify()
+
+    report_path = ws.ai_dir / "artifacts" / "reports" / out["run_id"] / "smoke.json"
+    assert report_path.exists()
+    assert not (ws.ai_dir / "artifacts" / "reports" / "smoke.json").exists()
+
+
+def test_verify_keeps_previous_run_artifacts_when_run_twice(tmp_path: Path) -> None:
+    ws = AIWorkspace(tmp_path)
+    ws.ensure_layout()
+    (ws.ai_dir / "config.yaml").write_text(
+        'workflow_version: "0.1"\n'
+        'gates:\n'
+        '  smoke: "python3 -c \\"print(123)\\""\n',
+        encoding="utf-8",
+    )
+
+    repo_root = Path(__file__).resolve().parents[1]
+    engine = WorkflowEngine(
+        repo_root=repo_root,
+        ws=ws,
+        telemetry=TelemetrySink(ws.ai_dir / "telemetry" / "events.jsonl"),
+    )
+
+    first = engine.verify(run_id="run_first")
+    second = engine.verify(run_id="run_second")
+
+    assert first["run_id"] == "run_first"
+    assert second["run_id"] == "run_second"
+    assert (ws.ai_dir / "artifacts" / "reports" / "run_first" / "smoke.json").exists()
+    assert (ws.ai_dir / "artifacts" / "reports" / "run_second" / "smoke.json").exists()
 
 
 def test_develop_contract_error_writes_failure_records(tmp_path: Path) -> None:

@@ -1,6 +1,12 @@
 # AIWF 闭环流程地图（可索引执行版）
 
 Date: 2026-03-06
+Status: Historical process map, not current SoT.
+
+如与当前行为冲突，请以以下文档为准：
+- `docs/process/2026-03-09-development-requirements-entry.md`
+- `docs/process/2026-03-09-develop-command-contract.md`
+- `docs/architecture/2026-03-10-m1-product-boundary-and-entrypoint.md`
 
 ## 1. 入口
 
@@ -78,7 +84,7 @@ aiwf audit-summary
 
 - `.ai/state.json`
 - `.ai/runs/<run_id>/run.json`
-- `.ai/artifacts/reports/*.json`
+- `.ai/artifacts/reports/<run_id>/*.json`
 - `.ai/telemetry/events.jsonl`
 - `.ai/roles_workflow.json`
 - `.ai/plan.json`

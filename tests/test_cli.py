@@ -62,6 +62,16 @@ def test_validate_state_succeeds_with_default_state(tmp_path: Path, monkeypatch)
     assert out["valid"] is True
 
 
+def test_init_self_hosted_sets_fixed_loop_required_stage_to_dev(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["init", "--self-hosted"])
+
+    assert result.exit_code == 0
+    config_text = (tmp_path / ".ai" / "config.yaml").read_text(encoding="utf-8")
+    assert "required_stage: DEV" in config_text
+
+
 def test_policy_check_git_allows_src_change(tmp_path: Path, monkeypatch) -> None:
     ws = AIWorkspace(tmp_path)
     ws.ensure_layout()
@@ -201,15 +211,24 @@ def test_validate_artifacts_succeeds_with_valid_run_and_gate_reports(
                 "run_id": run_id,
                 "timestamp": "2026-03-06T00:00:00+00:00",
                 "stage": "VERIFY",
+                "run_type": "verify",
                 "result": "success",
+                "ok": True,
+                "artifacts": {
+                    "run_record": f".ai/runs/{run_id}/run.json",
+                    "gate_reports": [f".ai/artifacts/reports/{run_id}/smoke.json"],
+                    "telemetry": ".ai/telemetry/events.jsonl",
+                },
             }
         )
         + "\n",
         encoding="utf-8",
     )
-    (ws.ai_dir / "artifacts" / "reports" / "smoke.json").write_text(
+    (ws.ai_dir / "artifacts" / "reports" / run_id).mkdir(parents=True, exist_ok=True)
+    (ws.ai_dir / "artifacts" / "reports" / run_id / "smoke.json").write_text(
         json.dumps(
             {
+                "run_id": run_id,
                 "name": "smoke",
                 "status": "pass",
                 "command": "echo ok",
@@ -266,13 +285,21 @@ def test_validate_artifacts_fails_when_gate_report_invalid(tmp_path: Path, monke
                 "run_id": run_id,
                 "timestamp": "2026-03-06T00:00:00+00:00",
                 "stage": "VERIFY",
+                "run_type": "verify",
                 "result": "success",
+                "ok": True,
+                "artifacts": {
+                    "run_record": f".ai/runs/{run_id}/run.json",
+                    "gate_reports": [f".ai/artifacts/reports/{run_id}/smoke.json"],
+                    "telemetry": ".ai/telemetry/events.jsonl",
+                },
             }
         )
         + "\n",
         encoding="utf-8",
     )
-    (ws.ai_dir / "artifacts" / "reports" / "smoke.json").write_text("{}\n", encoding="utf-8")
+    (ws.ai_dir / "artifacts" / "reports" / run_id).mkdir(parents=True, exist_ok=True)
+    (ws.ai_dir / "artifacts" / "reports" / run_id / "smoke.json").write_text("{}\n", encoding="utf-8")
     state = ws.read_state()
     state["last_run_id"] = run_id
     ws.write_state(state)
@@ -283,6 +310,94 @@ def test_validate_artifacts_fails_when_gate_report_invalid(tmp_path: Path, monke
     assert result.exit_code == 1
     out = json.loads(result.output)
     assert out["valid"] is False
+
+
+def test_validate_artifacts_uses_last_run_scoped_directory_only(tmp_path: Path, monkeypatch) -> None:
+    ws = AIWorkspace(tmp_path)
+    ws.ensure_layout()
+    _copy_schemas(tmp_path)
+
+    valid_run_id = "run_valid"
+    stale_run_id = "run_stale"
+    for run_id in [valid_run_id, stale_run_id]:
+        (ws.ai_dir / "runs" / run_id).mkdir(parents=True, exist_ok=True)
+    (ws.ai_dir / "runs" / valid_run_id / "run.json").write_text(
+        json.dumps(
+            {
+                "run_id": valid_run_id,
+                "timestamp": "2026-03-06T00:00:00+00:00",
+                "stage": "VERIFY",
+                "run_type": "verify",
+                "result": "success",
+                "ok": True,
+                "artifacts": {
+                    "run_record": f".ai/runs/{valid_run_id}/run.json",
+                    "gate_reports": [f".ai/artifacts/reports/{valid_run_id}/smoke.json"],
+                    "telemetry": ".ai/telemetry/events.jsonl",
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (ws.ai_dir / "runs" / stale_run_id / "run.json").write_text(
+        json.dumps(
+            {
+                "run_id": stale_run_id,
+                "timestamp": "2026-03-05T00:00:00+00:00",
+                "stage": "VERIFY",
+                "run_type": "verify",
+                "result": "failure",
+                "ok": False,
+                "artifacts": {
+                    "run_record": f".ai/runs/{stale_run_id}/run.json",
+                    "gate_reports": [f".ai/artifacts/reports/{stale_run_id}/smoke.json"],
+                    "telemetry": ".ai/telemetry/events.jsonl",
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    (ws.ai_dir / "artifacts" / "reports" / valid_run_id).mkdir(parents=True, exist_ok=True)
+    (ws.ai_dir / "artifacts" / "reports" / valid_run_id / "smoke.json").write_text(
+        json.dumps(
+            {
+                "run_id": valid_run_id,
+                "name": "smoke",
+                "status": "pass",
+                "command": "echo ok",
+                "exit_code": 0,
+                "ts_start": "2026-03-06T00:00:00+00:00",
+                "ts_end": "2026-03-06T00:00:01+00:00",
+                "duration_seconds": 1.0,
+                "evidence": {},
+                "metrics": {},
+                "environment": {},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    (ws.ai_dir / "artifacts" / "reports" / stale_run_id).mkdir(parents=True, exist_ok=True)
+    (ws.ai_dir / "artifacts" / "reports" / stale_run_id / "smoke.json").write_text(
+        "{}\n",
+        encoding="utf-8",
+    )
+
+    state = ws.read_state()
+    state["last_run_id"] = valid_run_id
+    ws.write_state(state)
+
+    monkeypatch.chdir(tmp_path)
+    result = runner.invoke(app, ["validate-artifacts"])
+
+    assert result.exit_code == 0
+    out = json.loads(result.output)
+    assert out["valid"] is True
+    assert out["run_id"] == valid_run_id
 
 
 def test_stage_set_updates_state_for_valid_stage(tmp_path: Path, monkeypatch) -> None:
@@ -325,6 +440,53 @@ def test_stage_set_ship_requires_successful_verify_run(tmp_path: Path, monkeypat
     out = json.loads(result.output)
     assert out["ok"] is False
     assert ws.read_state()["stage"] != "SHIP"
+
+
+def test_stage_set_ship_allows_successful_verified_develop_run(tmp_path: Path, monkeypatch) -> None:
+    ws = AIWorkspace(tmp_path)
+    ws.ensure_layout()
+    _copy_schemas(tmp_path)
+    run_id = "run_20260310_120000"
+    (ws.ai_dir / "runs" / run_id).mkdir(parents=True, exist_ok=True)
+    (ws.ai_dir / "runs" / run_id / "run.json").write_text(
+        json.dumps(
+            {
+                "run_id": run_id,
+                "timestamp": "2026-03-10T12:00:00+00:00",
+                "stage": "DEVELOP",
+                "run_type": "develop",
+                "mode": "full",
+                "verified": True,
+                "result": "success",
+                "ok": True,
+                "steps": {
+                    "plan": {"ok": True},
+                    "roles_sync": {"ok": True},
+                    "verify": {"ok": True},
+                },
+                "artifacts": {
+                    "run_record": f".ai/runs/{run_id}/run.json",
+                    "develop_record": f".ai/runs/{run_id}/develop.json",
+                    "gate_reports": [],
+                    "telemetry": ".ai/telemetry/events.jsonl",
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    state = ws.read_state()
+    state["stage"] = "DEV"
+    state["last_run_id"] = run_id
+    ws.write_state(state)
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["stage", "set", "SHIP"])
+
+    assert result.exit_code == 0
+    out = json.loads(result.output)
+    assert out["ok"] is True
+    assert ws.read_state()["stage"] == "SHIP"
 
 
 def test_stage_set_done_requires_current_stage_ship(tmp_path: Path, monkeypatch) -> None:
@@ -396,14 +558,18 @@ def test_audit_summary_reports_stage_run_and_gate_counts(tmp_path: Path, monkeyp
     assert out["policy"]["present"] is False
 
 
-def test_audit_summary_reads_latest_policy_check_event(tmp_path: Path, monkeypatch) -> None:
+def test_audit_summary_reads_policy_check_for_last_run_id(tmp_path: Path, monkeypatch) -> None:
     ws = AIWorkspace(tmp_path)
     ws.ensure_layout()
+    run_id = "run_20260310_130000"
+    state = ws.read_state()
+    state["last_run_id"] = run_id
+    ws.write_state(state)
     telemetry_path = ws.ai_dir / "telemetry" / "events.jsonl"
     telemetry_path.write_text(
-        json.dumps({"type": "policy_check", "payload": {"allowed": False, "reason": "old"}}) + "\n"
-        + json.dumps({"type": "run_started", "payload": {"stage": "VERIFY"}}) + "\n"
-        + json.dumps({"type": "policy_check", "payload": {"allowed": True, "reason": "latest"}})
+        json.dumps({"type": "policy_check", "run_id": "run_old", "payload": {"allowed": False, "reason": "old"}})
+        + "\n"
+        + json.dumps({"type": "policy_check", "run_id": run_id, "payload": {"allowed": True, "reason": "current"}})
         + "\n",
         encoding="utf-8",
     )
@@ -415,7 +581,7 @@ def test_audit_summary_reads_latest_policy_check_event(tmp_path: Path, monkeypat
     out = json.loads(result.output)
     assert out["policy"]["present"] is True
     assert out["policy"]["allowed"] is True
-    assert out["policy"]["reason"] == "latest"
+    assert out["policy"]["reason"] == "current"
 
 
 def test_self_check_passes_when_pr_state_and_artifacts_are_valid(tmp_path: Path, monkeypatch) -> None:
@@ -442,15 +608,24 @@ def test_self_check_passes_when_pr_state_and_artifacts_are_valid(tmp_path: Path,
                 "run_id": run_id,
                 "timestamp": "2026-03-06T12:12:12+00:00",
                 "stage": "VERIFY",
+                "run_type": "verify",
                 "result": "success",
+                "ok": True,
+                "artifacts": {
+                    "run_record": f".ai/runs/{run_id}/run.json",
+                    "gate_reports": [f".ai/artifacts/reports/{run_id}/smoke.json"],
+                    "telemetry": ".ai/telemetry/events.jsonl",
+                },
             }
         )
         + "\n",
         encoding="utf-8",
     )
-    (ws.ai_dir / "artifacts" / "reports" / "smoke.json").write_text(
+    (ws.ai_dir / "artifacts" / "reports" / run_id).mkdir(parents=True, exist_ok=True)
+    (ws.ai_dir / "artifacts" / "reports" / run_id / "smoke.json").write_text(
         json.dumps(
             {
+                "run_id": run_id,
                 "name": "smoke",
                 "status": "pass",
                 "command": "echo ok",
@@ -532,19 +707,28 @@ def test_loop_check_passes_when_required_gates_and_stage_match(tmp_path: Path, m
         "run_id": run_id,
         "timestamp": "2026-03-06T13:13:13+00:00",
         "stage": "VERIFY",
+        "run_type": "verify",
         "result": "success",
+        "ok": True,
         "results": {
             "unit_tests": {"status": "pass"},
             "self_check": {"status": "pass"},
+        },
+        "artifacts": {
+            "run_record": f".ai/runs/{run_id}/run.json",
+            "gate_reports": [f".ai/artifacts/reports/{run_id}/unit_tests.json"],
+            "telemetry": ".ai/telemetry/events.jsonl",
         },
     }
     (ws.ai_dir / "runs" / run_id).mkdir(parents=True, exist_ok=True)
     (ws.ai_dir / "runs" / run_id / "run.json").write_text(
         json.dumps(run_payload) + "\n", encoding="utf-8"
     )
-    (ws.ai_dir / "artifacts" / "reports" / "unit_tests.json").write_text(
+    (ws.ai_dir / "artifacts" / "reports" / run_id).mkdir(parents=True, exist_ok=True)
+    (ws.ai_dir / "artifacts" / "reports" / run_id / "unit_tests.json").write_text(
         json.dumps(
             {
+                "run_id": run_id,
                 "name": "unit_tests",
                 "status": "pass",
                 "command": "pytest -q",
@@ -644,7 +828,7 @@ def test_plan_validate_passes_with_schema_valid_plan(tmp_path: Path, monkeypatch
     ws = AIWorkspace(tmp_path)
     ws.ensure_layout()
     _copy_schemas(tmp_path)
-    ws.write_plan({"project_id": "aiwf", "version": 1, "tasks": [{"id": "T1"}]})
+    ws.write_plan({"project_id": "aiwf", "version": 1, "tasks": [{"id": "T1", "status": "pending"}]})
     monkeypatch.chdir(tmp_path)
 
     result = runner.invoke(app, ["plan", "validate"])
@@ -980,7 +1164,7 @@ def test_roles_autopilot_advances_roles_from_checks(tmp_path: Path, monkeypatch)
         '      - "smoke"\n',
         encoding="utf-8",
     )
-    ws.write_plan({"project_id": "aiwf", "version": 1, "tasks": [{"id": "T1"}]})
+    ws.write_plan({"project_id": "aiwf", "version": 1, "tasks": [{"id": "T1", "status": "pending"}]})
     runner.invoke(app, ["roles", "init"])
 
     result = runner.invoke(app, ["roles", "autopilot", "--verify"])

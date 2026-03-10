@@ -15,8 +15,29 @@
       "minimum": 1
     },
     "tasks": {
-      "type": "array"
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "completed",
+              "in_progress",
+              "pending"
+            ]
+          }
+        },
+        "additionalProperties": true
+      }
     }
   },
-  "additionalProperties": true
+  "additionalProperties": false
 }

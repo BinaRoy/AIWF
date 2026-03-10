@@ -56,19 +56,22 @@ class WorkflowEngine:
         run_id: Optional[str] = None,
         run_stage: str = "VERIFY",
         write_run_record: bool = True,
+        update_state_stage: bool = True,
     ) -> Dict[str, Any]:
         cfg = self.ws.read_config()
         gates_cfg = (cfg.get("gates") or {})
-        reports_dir = self.ws.ai_dir / "artifacts" / "reports"
+        resolved_run_id = run_id or _run_id()
+        reports_dir = self.ws.ai_dir / "artifacts" / "reports" / resolved_run_id
         gate_engine = GateEngine(reports_dir=reports_dir)
         gate_schema = load_schema(self.repo_root, "gate_result.schema.json")
         run_schema = load_schema(self.repo_root, "run_record.schema.json")
-
-        resolved_run_id = run_id or _run_id()
         self.telemetry.emit("run_started", {"stage": run_stage, "run_type": "verify"}, run_id=resolved_run_id)
 
         def finalize_run(ok: bool, results: Dict[str, Any]) -> Dict[str, Any]:
             result_status = "success" if ok else "failure"
+            gate_reports = [
+                f".ai/artifacts/reports/{resolved_run_id}/{gate_name}.json" for gate_name in results.keys()
+            ]
             run_record = {
                 "run_id": resolved_run_id,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -77,6 +80,11 @@ class WorkflowEngine:
                 "result": result_status,
                 "ok": ok,
                 "results": results,
+                "artifacts": {
+                    "run_record": f".ai/runs/{resolved_run_id}/run.json",
+                    "gate_reports": gate_reports,
+                    "telemetry": ".ai/telemetry/events.jsonl",
+                },
             }
             if write_run_record:
                 validate_payload(run_record, run_schema)
@@ -88,8 +96,11 @@ class WorkflowEngine:
                 )
 
             state = self.ws.read_state()
-            state["stage"] = "VERIFY"
+            if update_state_stage:
+                state["stage"] = "VERIFY"
             state["last_run_id"] = resolved_run_id
+            state["last_run_type"] = "verify"
+            state["last_run_result"] = result_status
             state["gates"] = results
             self.ws.write_state(state)
 
@@ -131,7 +142,7 @@ class WorkflowEngine:
         results: Dict[str, Any] = {}
         ok = True
         for name, cmd in gates_cfg.items():
-            res = gate_engine.run(GateSpec(name=name, command=str(cmd)))
+            res = gate_engine.run(GateSpec(name=name, command=str(cmd)), run_id=resolved_run_id)
             gate_payload = res.__dict__
             validate_payload(gate_payload, gate_schema)
             results[name] = gate_payload
@@ -155,6 +166,7 @@ class WorkflowEngine:
         verified = False
         steps: Dict[str, Any] = {}
         run_schema = load_schema(self.repo_root, "run_record.schema.json")
+        develop_schema = load_schema(self.repo_root, "develop_record.schema.json")
 
         def write_run_files(ok: bool, result: str, error: Optional[dict] = None) -> Dict[str, Any]:
             run_dir = self.ws.ai_dir / "runs" / resolved_run_id
@@ -165,7 +177,7 @@ class WorkflowEngine:
             verify_results = verify_step.get("results") if isinstance(verify_step, dict) else {}
             if isinstance(verify_results, dict):
                 for gate_name in verify_results.keys():
-                    gate_reports.append(f".ai/artifacts/reports/{gate_name}.json")
+                    gate_reports.append(f".ai/artifacts/reports/{resolved_run_id}/{gate_name}.json")
 
             run_record = {
                 "run_id": resolved_run_id,
@@ -177,6 +189,12 @@ class WorkflowEngine:
                 "result": result,
                 "ok": ok,
                 "steps": steps,
+                "artifacts": {
+                    "run_record": f".ai/runs/{resolved_run_id}/run.json",
+                    "develop_record": f".ai/runs/{resolved_run_id}/develop.json",
+                    "gate_reports": gate_reports,
+                    "telemetry": ".ai/telemetry/events.jsonl",
+                },
             }
             validate_payload(run_record, run_schema)
             (run_dir / "run.json").write_text(
@@ -200,6 +218,7 @@ class WorkflowEngine:
             }
             if error:
                 develop_record["error"] = error
+            validate_payload(develop_record, develop_schema)
             (run_dir / "develop.json").write_text(
                 json.dumps(develop_record, indent=2, ensure_ascii=False) + "\n",
                 encoding="utf-8",
@@ -253,11 +272,18 @@ class WorkflowEngine:
                 self.telemetry.emit("develop_finished", {"ok": False, "verified": False, "mode": mode}, run_id=resolved_run_id)
                 state = self.ws.read_state()
                 state["last_run_id"] = resolved_run_id
+                state["last_run_type"] = "develop"
+                state["last_run_result"] = "failure"
                 self.ws.write_state(state)
                 return out
 
             if run_verify:
-                verify_out = self.verify(run_id=resolved_run_id, run_stage="DEVELOP", write_run_record=False)
+                verify_out = self.verify(
+                    run_id=resolved_run_id,
+                    run_stage="DEVELOP",
+                    write_run_record=False,
+                    update_state_stage=False,
+                )
                 verified = bool(verify_out.get("ok"))
                 steps["verify"] = verify_out
                 self.telemetry.emit("develop_step", {"name": "verify", "ok": verified}, run_id=resolved_run_id)
@@ -270,6 +296,8 @@ class WorkflowEngine:
                     )
                     state = self.ws.read_state()
                     state["last_run_id"] = resolved_run_id
+                    state["last_run_type"] = "develop"
+                    state["last_run_result"] = "failure"
                     self.ws.write_state(state)
                     return out
             else:
@@ -279,9 +307,10 @@ class WorkflowEngine:
             result = "success" if run_verify else "partial"
             out = write_run_files(ok=True, result=result)
             state = self.ws.read_state()
+            state["stage"] = "DEV"
             state["last_run_id"] = resolved_run_id
-            if not run_verify:
-                state["stage"] = "DEV"
+            state["last_run_type"] = "develop"
+            state["last_run_result"] = result
             self.ws.write_state(state)
             self.telemetry.emit(
                 "develop_finished",
@@ -298,6 +327,8 @@ class WorkflowEngine:
             )
             state = self.ws.read_state()
             state["last_run_id"] = resolved_run_id
+            state["last_run_type"] = "develop"
+            state["last_run_result"] = "failure"
             self.ws.write_state(state)
             self.telemetry.emit(
                 "develop_finished",
@@ -314,6 +345,8 @@ class WorkflowEngine:
             )
             state = self.ws.read_state()
             state["last_run_id"] = resolved_run_id
+            state["last_run_type"] = "develop"
+            state["last_run_result"] = "failure"
             self.ws.write_state(state)
             self.telemetry.emit(
                 "develop_finished",

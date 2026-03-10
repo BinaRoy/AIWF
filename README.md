@@ -3,18 +3,33 @@
 AIWF 是一个面向 Agent 协作开发的“流程执行层”。  
 它把研发过程中的阶段、门禁、证据、审计统一成可执行命令，目标是让“规范开发”从文档约定变成机器可判定。
 
-## This Project Solves
+当前版本边界：
+- M1 只覆盖 workspace initialization、workflow state management、basic development loop、verification gates、artifact recording
+- 当前默认落地形态是 Python self-hosted repository
+- 当前不是通用插件化平台，也不是全能治理系统
+- `roles` 当前表达的是角色状态治理与证据映射，不是严格的多角色协作编排系统
+
+## 非目标
+
+- 不是通用仓库接入平台（not a universal repo integration platform）
+- 不是通用插件系统（not a generic plugin system）
+- 不是完整的多 Agent 编排引擎（not a full multi-agent orchestration engine）
+- 不是完整的治理操作系统（not a complete governance operating system）
+
+## 这个项目解决什么
 
 - 让开发流程可追踪：状态、计划、角色、风险都落盘到 `.ai/`
 - 让质量门禁可执行：`verify` / `validate-*` / `self-check` / `loop-check`
-- 让多角色协作可判定：`roles init/update/check/autopilot`
+- 让角色状态可判定：`roles init/update/check/autopilot`
 - 让 CI 与本地流程一致：PR 中走同一条闭环命令链
 
-## Quickstart (Local)
+## 本地快速开始
 
 ```bash
-python -m venv .venv
+python3 --version
+python3 -m venv .venv
 source .venv/bin/activate
+python -m pip install --upgrade pip
 pip install -e ".[dev]"
 
 # 初始化自托管默认配置
@@ -26,7 +41,12 @@ aiwf develop
 aiwf audit-summary
 ```
 
-## Core Closed-Loop Command
+如果系统里没有 `python3` 或 `venv`：
+- Ubuntu/Debian: `sudo apt-get install python3 python3-venv`
+- macOS with Homebrew: `brew install python`
+- Windows PowerShell: `py -3 -m venv .venv`
+
+## 闭环主命令
 
 推荐把以下命令作为“主放行入口”：
 
@@ -40,10 +60,11 @@ aiwf develop
 - 输出 `verified` 状态用于区分 full/preflight
 - 任一关键步骤失败返回非 0
 
-兼容入口（保留）：
-- `aiwf roles autopilot --verify`
+相关能力：
+- `aiwf verify`: 底层 gate executor，可独立调用
+- `aiwf roles autopilot`: 辅助角色状态推进，不再承担主闭环入口语义
 
-## Develop Contract (M1)
+## `develop` 行为合同（M1）
 
 `aiwf develop` 在 M1 中被定义为“一次受控开发推进运行单元”。
 
@@ -54,7 +75,7 @@ aiwf develop
 - 旧流程文档继续保留用于追溯；
 - 若与 develop 行为定义有冲突，以上述 SoT 为准。
 
-## Development Requirements Entry (M1)
+## 开发需求入口（M1）
 
 固定开发需求入口文档（SoT）：
 - `docs/process/2026-03-09-development-requirements-entry.md`
@@ -62,9 +83,10 @@ aiwf develop
 说明：
 - 当前阶段的需求优先级、执行顺序、边界与完成标准统一在该文档维护。
 
-## New Project + Agent Workflow
+## Python 自托管仓库接入方式
 
-在全新工程里，建议固定执行顺序：
+当前更准确的接入方式是“把 AIWF 接入一个 Python self-hosted 仓库”。
+建议固定执行顺序：
 
 ```bash
 git fetch origin
@@ -78,13 +100,20 @@ aiwf audit-summary
 
 如果 `develop` 失败，不进入合并阶段，先按输出的失败项修复再重跑。
 
-## CI Enforcement (PR)
+不建议当前版本对外表述为“任意工程可直接通用接入”。
+默认自托管配置仍明显依赖：
+- `.ai/` 工作区
+- git / PR 流程约束
+- JSON Schema 契约
+- Python / pytest gate 约定
+
+## CI 执行（PR）
 
 CI workflow: `.github/workflows/aiwf-verify.yml`
 
 PR 到 `dev` 或 `main` 时，CI 执行：
 1. `aiwf init --self-hosted`
-2. seed minimal `.ai/plan.json` + `aiwf roles init`
+2. 写入最小 `.ai/plan.json` 并执行 `aiwf roles init`
 3. `aiwf develop`
 4. `aiwf audit-summary`
 
@@ -94,7 +123,7 @@ PR 到 `dev` 或 `main` 时，CI 执行：
 - `.ai/artifacts/reports/`
 - `.ai/telemetry/events.jsonl`
 
-## Branch Strategy (main + dev)
+## 分支策略（`main` + `dev`）
 
 - `main`: 默认分支，仅用于阶段性稳定发布
 - `dev`: 日常开发集成分支（feature 分支通过 PR 合入 `dev`）
@@ -119,16 +148,17 @@ git:
   require_pr: true
 ```
 
-## Repo Layout
+## 仓库结构
 
 - `src/aiwf/`: CLI 与工作流引擎实现
 - `schemas/`: 关键契约（state/plan/risk/roles/run/gate）
 - `docs/`: 架构、流程、SOP、计划、中文指南
 - `.ai/`: 运行态与审计证据目录
 
-## Documentation Entry
+## 文档入口
 
 完整流程导航见：
 - `docs/README.md`
 - `docs/process/2026-03-06-closed-loop-flow-map.md`
 - `docs/guide/2026-03-06-aiwf-framework-intro-and-usage-zh.md`
+- `docs/architecture/2026-03-10-m1-product-boundary-and-entrypoint.md`

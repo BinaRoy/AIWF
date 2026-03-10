@@ -2,12 +2,22 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "required": [
+    "run_id",
     "name",
     "status",
+    "command",
+    "exit_code",
     "ts_start",
-    "ts_end"
+    "ts_end",
+    "duration_seconds",
+    "evidence",
+    "metrics",
+    "environment"
   ],
   "properties": {
+    "run_id": {
+      "type": "string"
+    },
     "name": {
       "type": "string"
     },
@@ -50,5 +60,5 @@
       "type": "object"
     }
   },
-  "additionalProperties": true
+  "additionalProperties": false
 }

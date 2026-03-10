@@ -1,6 +1,12 @@
 # AIWF Development Playbook
 
 Date: 2026-03-06
+Status: Historical playbook, not current SoT.
+
+If this playbook conflicts with current behavior, follow:
+- `docs/process/2026-03-09-development-requirements-entry.md`
+- `docs/process/2026-03-09-develop-command-contract.md`
+- `docs/architecture/2026-03-10-m1-product-boundary-and-entrypoint.md`
 
 ## 1. Purpose
 
@@ -31,7 +37,7 @@ Priority note:
 7. Generate regulator summary:
    - `aiwf audit-summary`
 8. Review evidence files:
-   - `.ai/artifacts/reports/*.json`
+   - `.ai/artifacts/reports/<run_id>/*.json`
    - `.ai/runs/<run_id>/run.json`
    - `.ai/telemetry/events.jsonl`
    - `.ai/roles_workflow.json`

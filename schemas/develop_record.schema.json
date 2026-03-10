@@ -4,10 +4,10 @@
   "required": [
     "run_id",
     "timestamp",
-    "stage",
-    "run_type",
-    "result",
+    "mode",
+    "verified",
     "ok",
+    "steps",
     "artifacts"
   ],
   "properties": {
@@ -16,24 +16,6 @@
     },
     "timestamp": {
       "type": "string"
-    },
-    "stage": {
-      "type": "string"
-    },
-    "run_type": {
-      "type": "string",
-      "enum": [
-        "develop",
-        "verify"
-      ]
-    },
-    "result": {
-      "type": "string",
-      "enum": [
-        "success",
-        "failure",
-        "partial"
-      ]
     },
     "mode": {
       "type": "string",
@@ -49,18 +31,25 @@
       "type": "boolean"
     },
     "steps": {
-      "type": "object"
-    },
-    "results": {
       "type": "object",
-      "additionalProperties": {
-        "type": "object"
-      }
+      "properties": {
+        "plan": {
+          "type": "object"
+        },
+        "roles_sync": {
+          "type": "object"
+        },
+        "verify": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": true
     },
     "artifacts": {
       "type": "object",
       "required": [
         "run_record",
+        "develop_record",
         "gate_reports",
         "telemetry"
       ],
@@ -69,10 +58,7 @@
           "type": "string"
         },
         "develop_record": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string"
         },
         "gate_reports": {
           "type": "array",
@@ -85,6 +71,9 @@
         }
       },
       "additionalProperties": false
+    },
+    "error": {
+      "type": "object"
     }
   },
   "additionalProperties": false

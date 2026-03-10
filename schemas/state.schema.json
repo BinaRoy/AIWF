@@ -3,7 +3,15 @@
   "type": "object",
   "required": [
     "workflow_version",
-    "stage"
+    "stage",
+    "current_task",
+    "branch",
+    "last_run_id",
+    "last_run_type",
+    "last_run_result",
+    "retry_count",
+    "gates",
+    "plan_progress"
   ],
   "properties": {
     "workflow_version": {
@@ -40,13 +48,92 @@
         "null"
       ]
     },
+    "last_run_type": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "develop",
+        "verify",
+        null
+      ]
+    },
+    "last_run_result": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "success",
+        "failure",
+        "partial",
+        null
+      ]
+    },
     "retry_count": {
       "type": "integer",
       "minimum": 0
     },
     "gates": {
-      "type": "object"
+      "type": "object",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "plan_progress": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": [
+        "project_id",
+        "version",
+        "counts",
+        "updated_at"
+      ],
+      "properties": {
+        "project_id": {
+          "type": "string"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "counts": {
+          "type": "object",
+          "required": [
+            "total",
+            "completed",
+            "in_progress",
+            "pending"
+          ],
+          "properties": {
+            "total": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "completed": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "in_progress": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "pending": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        },
+        "updated_at": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
     }
   },
-  "additionalProperties": true
+  "additionalProperties": false
 }
