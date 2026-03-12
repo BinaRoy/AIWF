@@ -19,7 +19,8 @@ Default behavior:
 1. Validate plan contract (precondition)
 2. Run role sync step (default enabled)
 3. Run verification step (default enabled)
-4. Write run artifacts and summary
+4. Initialize or reuse the run-scoped dispatch record
+5. Write run artifacts and summary
 
 ## 3. Input Contract
 
@@ -34,6 +35,7 @@ Runtime inputs:
 - `.ai/state.json`
 - `.ai/plan.json` (required when strict plan is enabled)
 - `.ai/roles_workflow.json` (created/loaded when role sync is enabled)
+- `.ai/runs/<run_id>/dispatch.json` (initialized or reused inside the run)
 
 ## 4. Output Contract
 
@@ -76,6 +78,7 @@ Single-run principle:
 Record boundary:
 - `run.json`: unified run overview record (not verify-only semantics).
 - `develop.json`: develop orchestration detail record.
+- `dispatch.json`: run-scoped work item / handoff / transition evidence record.
 
 If verify is executed inside develop, it must reuse the same `run_id` to keep evidence coherent.
 
@@ -91,12 +94,18 @@ For every invocation, even failed runs should leave machine-readable evidence:
   - per-step result
   - error summary (if any)
   - artifact pointers
+- `.ai/runs/<run_id>/dispatch.json`:
+  - work items
+  - handoffs
+  - transitions
+  - dispatch summary
 
 ## 8. Boundary: develop vs verify
 
 - `verify` is the quality-gate executor (policy, gate execution, verification result recording).
 - `develop` is the orchestrator for controlled development progression.
 - Role sync is default pre-step of develop, but it is not the semantic core of develop.
+- `dispatch` is a run-scoped evidence skeleton for task flow, not a second orchestrator.
 
 ## 9. M1 Implementation Constraints
 

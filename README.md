@@ -4,10 +4,11 @@ AIWF 是一个面向 Agent 协作开发的“流程执行层”。
 它把研发过程中的阶段、门禁、证据、审计统一成可执行命令，目标是让“规范开发”从文档约定变成机器可判定。
 
 当前版本边界：
-- M1 只覆盖 workspace initialization、workflow state management、basic development loop、verification gates、artifact recording
+- M1 只覆盖 workspace initialization、workflow state management、basic development loop、verification gates、artifact recording，以及 run-scoped dispatch skeleton
 - 当前默认落地形态是 Python self-hosted repository
 - 当前不是通用插件化平台，也不是全能治理系统
 - `roles` 当前表达的是角色状态治理与证据映射，不是严格的多角色协作编排系统
+- `dispatch` 当前表达的是 run 内 work item / handoff / transition 的记录骨架，不是完整的多 Agent 调度执行器
 
 ## 非目标
 
@@ -63,6 +64,7 @@ aiwf develop
 相关能力：
 - `aiwf verify`: 底层 gate executor，可独立调用
 - `aiwf roles autopilot`: 辅助角色状态推进，不再承担主闭环入口语义
+- `aiwf dispatch *`: 管理本次 run 的 work item / handoff / transition 记录，但不构成新的主闭环入口
 
 ## `develop` 行为合同（M1）
 
@@ -151,7 +153,7 @@ git:
 ## 仓库结构
 
 - `src/aiwf/`: CLI 与工作流引擎实现
-- `schemas/`: 关键契约（state/plan/risk/roles/run/gate）
+- `schemas/`: 关键契约（state/plan/risk/roles/run/gate/dispatch）
 - `docs/`: 架构、流程、SOP、计划、中文指南
 - `.ai/`: 运行态与审计证据目录
 

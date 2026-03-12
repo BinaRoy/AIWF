@@ -16,6 +16,7 @@ AIWF M1 is a CLI-first workflow runtime for AI-assisted software development wit
 - basic development loop
 - verification gates
 - artifact recording
+- run-scoped dispatch skeleton
 
 This is enough to support the current scaffold and self-hosted usage model.
 It is not a claim that AIWF is already a general-purpose integration platform for arbitrary repositories.
@@ -49,6 +50,7 @@ Supporting commands:
 
 - `aiwf verify`: low-level gate executor; can run independently, but is not the primary closed-loop command
 - `aiwf roles autopilot`: helper for role-state progression; not the primary release gate
+- `aiwf dispatch ...`: helper for recording work items, handoffs, and transitions inside a run; not a second primary entry point
 
 ## Roles Positioning
 
@@ -59,3 +61,16 @@ Current `roles` capability should be described as:
 - machine-checkable collaboration status
 
 It should not yet be described as configurable multi-role orchestration unless handoff/work-item/transition models are added later.
+
+## Dispatch Positioning
+
+Current `dispatch` capability should be described as:
+
+- run-scoped work item recording
+- handoff and transition evidence
+- machine-checkable dispatch summary inside one `run_id`
+
+It should not yet be described as:
+
+- a full multi-agent orchestration engine
+- a scheduler that actually launches or coordinates external agents

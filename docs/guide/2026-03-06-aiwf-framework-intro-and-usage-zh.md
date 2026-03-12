@@ -30,6 +30,7 @@ AIWF 不是单纯的命令集合，而是一套“可执行的流程运行时约
 - 当前不是“任意工程可直接通用接入”的插件化平台
 - 当前不是全能治理系统
 - `roles` 当前是角色状态治理能力，不是严格意义上的多角色协作编排系统
+- `dispatch` 当前是 run 级 work item / handoff / transition 记录骨架，不是完整多 Agent 调度器
 
 ## 2. 这个框架已经实现了什么
 
@@ -42,6 +43,7 @@ AIWF 不是单纯的命令集合，而是一套“可执行的流程运行时约
 - 监管摘要：`aiwf audit-summary`
 - 闭环检查：`aiwf self-check`、`aiwf loop-check`
 - 角色状态治理：`aiwf roles init/status/check/update/autopilot`
+- 调度记录骨架：`aiwf dispatch init/add-item/handoff/transition/status`
 - 风险治理：`aiwf risk status/waive`
 - PR 门禁：`aiwf pr-check/pr-status`
 - CI 自动闭环：PR 中以 `aiwf develop` 作为唯一主入口
@@ -79,6 +81,7 @@ aiwf audit-summary
 - `aiwf develop` 是唯一主闭环入口。
 - `aiwf verify` 是底层 gate executor，可独立调用，但不是主放行入口。
 - `roles autopilot` 只负责辅助角色状态推进，不承担主闭环入口语义。
+- `dispatch` 只负责记录本次 run 内的 work item / handoff / transition，不替代 `develop`。
 - `audit-summary` 提供统一视图，便于人和 Agent 做继续/阻断决策。
 
 ### 3.4 PR 与 CI
@@ -100,16 +103,19 @@ aiwf audit-summary
 2. 把 `roles` 理解为角色状态治理，而不是完整协作编排
 - 它当前更像可判定的协作状态与证据映射。
 
-3. 让 Agent 输出“证据导向结果”，不是口头结论
+3. 把 `dispatch` 理解为 run 内调度留痕，而不是多 Agent 执行器
+- 它当前解决的是“本次 run 里发生了哪些任务流转”，不是“自动调度谁去做”。
+
+4. 让 Agent 输出“证据导向结果”，不是口头结论
 - 例如：run_id、gate report、summary JSON。
 
-4. 对高风险变更提前建 risk 条目
+5. 对高风险变更提前建 risk 条目
 - 用 `aiwf risk waive` 管理临时豁免并设置过期时间。
 
-5. 限制“无计划编码”
+6. 限制“无计划编码”
 - 没有 `.ai/plan.json` 或 plan 不合法时，不进入实现阶段。
 
-6. 统一约束入口写入 `AGENTS.md`
+7. 统一约束入口写入 `AGENTS.md`
 - 明确必跑命令和失败后的处理方式，降低协作偏差。
 
 ## 5. 一句话实践原则
