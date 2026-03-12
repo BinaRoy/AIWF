@@ -272,6 +272,182 @@ def test_validate_artifacts_fails_when_run_record_missing(tmp_path: Path, monkey
     assert out["valid"] is False
 
 
+def test_dispatch_init_creates_run_scoped_dispatch_record(tmp_path: Path, monkeypatch) -> None:
+    ws = AIWorkspace(tmp_path)
+    ws.ensure_layout()
+    _copy_schemas(tmp_path)
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["dispatch", "init", "--run-id", "run_dispatch_cli_1"])
+
+    assert result.exit_code == 0
+    out = json.loads(result.output)
+    assert out["run_id"] == "run_dispatch_cli_1"
+    assert (ws.ai_dir / "runs" / "run_dispatch_cli_1" / "dispatch.json").exists()
+
+
+def test_dispatch_add_item_writes_work_item_to_dispatch_record(tmp_path: Path, monkeypatch) -> None:
+    ws = AIWorkspace(tmp_path)
+    ws.ensure_layout()
+    _copy_schemas(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["dispatch", "init", "--run-id", "run_dispatch_cli_2"])
+
+    result = runner.invoke(
+        app,
+        [
+            "dispatch",
+            "add-item",
+            "--run-id",
+            "run_dispatch_cli_2",
+            "--id",
+            "item_1",
+            "--title",
+            "Write CLI",
+            "--owner-role",
+            "manager",
+            "--acceptance-ref",
+            ".ai/plan.json",
+        ],
+    )
+
+    assert result.exit_code == 0
+    out = json.loads(result.output)
+    assert out["summary"]["total_work_items"] == 1
+    dispatch_payload = json.loads(
+        (ws.ai_dir / "runs" / "run_dispatch_cli_2" / "dispatch.json").read_text(encoding="utf-8")
+    )
+    assert dispatch_payload["work_items"][0]["id"] == "item_1"
+
+
+def test_dispatch_handoff_records_role_transfer(tmp_path: Path, monkeypatch) -> None:
+    ws = AIWorkspace(tmp_path)
+    ws.ensure_layout()
+    _copy_schemas(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["dispatch", "init", "--run-id", "run_dispatch_cli_3"])
+    runner.invoke(
+        app,
+        [
+            "dispatch",
+            "add-item",
+            "--run-id",
+            "run_dispatch_cli_3",
+            "--id",
+            "item_1",
+            "--title",
+            "Write CLI",
+            "--owner-role",
+            "manager",
+        ],
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "dispatch",
+            "handoff",
+            "--run-id",
+            "run_dispatch_cli_3",
+            "--work-item-id",
+            "item_1",
+            "--from-role",
+            "manager",
+            "--to-role",
+            "implementer",
+            "--reason",
+            "Ready",
+            "--evidence-ref",
+            ".ai/runs/run_dispatch_cli_3/run.json",
+        ],
+    )
+
+    assert result.exit_code == 0
+    out = json.loads(result.output)
+    assert out["summary"]["handoff_count"] == 1
+    dispatch_payload = json.loads(
+        (ws.ai_dir / "runs" / "run_dispatch_cli_3" / "dispatch.json").read_text(encoding="utf-8")
+    )
+    assert dispatch_payload["handoffs"][0]["to_role"] == "implementer"
+
+
+def test_dispatch_transition_updates_item_status(tmp_path: Path, monkeypatch) -> None:
+    ws = AIWorkspace(tmp_path)
+    ws.ensure_layout()
+    _copy_schemas(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["dispatch", "init", "--run-id", "run_dispatch_cli_4"])
+    runner.invoke(
+        app,
+        [
+            "dispatch",
+            "add-item",
+            "--run-id",
+            "run_dispatch_cli_4",
+            "--id",
+            "item_1",
+            "--title",
+            "Write CLI",
+            "--owner-role",
+            "implementer",
+        ],
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "dispatch",
+            "transition",
+            "--run-id",
+            "run_dispatch_cli_4",
+            "--work-item-id",
+            "item_1",
+            "--to-status",
+            "in_progress",
+            "--reason",
+            "Started",
+        ],
+    )
+
+    assert result.exit_code == 0
+    out = json.loads(result.output)
+    assert out["summary"]["in_progress"] == 1
+    dispatch_payload = json.loads(
+        (ws.ai_dir / "runs" / "run_dispatch_cli_4" / "dispatch.json").read_text(encoding="utf-8")
+    )
+    assert dispatch_payload["work_items"][0]["status"] == "in_progress"
+
+
+def test_dispatch_status_returns_current_dispatch_record(tmp_path: Path, monkeypatch) -> None:
+    ws = AIWorkspace(tmp_path)
+    ws.ensure_layout()
+    _copy_schemas(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["dispatch", "init", "--run-id", "run_dispatch_cli_5"])
+    runner.invoke(
+        app,
+        [
+            "dispatch",
+            "add-item",
+            "--run-id",
+            "run_dispatch_cli_5",
+            "--id",
+            "item_1",
+            "--title",
+            "Write CLI",
+            "--owner-role",
+            "manager",
+        ],
+    )
+
+    result = runner.invoke(app, ["dispatch", "status", "--run-id", "run_dispatch_cli_5"])
+
+    assert result.exit_code == 0
+    out = json.loads(result.output)
+    assert out["run_id"] == "run_dispatch_cli_5"
+    assert out["summary"]["total_work_items"] == 1
+
+
 def test_validate_artifacts_fails_when_gate_report_invalid(tmp_path: Path, monkeypatch) -> None:
     ws = AIWorkspace(tmp_path)
     ws.ensure_layout()
@@ -398,6 +574,94 @@ def test_validate_artifacts_uses_last_run_scoped_directory_only(tmp_path: Path, 
     out = json.loads(result.output)
     assert out["valid"] is True
     assert out["run_id"] == valid_run_id
+
+
+def test_validate_artifacts_validates_dispatch_record_when_referenced(tmp_path: Path, monkeypatch) -> None:
+    ws = AIWorkspace(tmp_path)
+    ws.ensure_layout()
+    _copy_schemas(tmp_path)
+
+    run_id = "run_dispatch_validate"
+    (ws.ai_dir / "runs" / run_id).mkdir(parents=True, exist_ok=True)
+    (ws.ai_dir / "runs" / run_id / "run.json").write_text(
+        json.dumps(
+            {
+                "run_id": run_id,
+                "timestamp": "2026-03-11T00:00:00+00:00",
+                "stage": "DEVELOP",
+                "run_type": "develop",
+                "result": "success",
+                "ok": True,
+                "mode": "full",
+                "verified": True,
+                "steps": {},
+                "artifacts": {
+                    "run_record": f".ai/runs/{run_id}/run.json",
+                    "develop_record": f".ai/runs/{run_id}/develop.json",
+                    "dispatch_record": f".ai/runs/{run_id}/dispatch.json",
+                    "gate_reports": [f".ai/artifacts/reports/{run_id}/smoke.json"],
+                    "telemetry": ".ai/telemetry/events.jsonl",
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (ws.ai_dir / "runs" / run_id / "dispatch.json").write_text(
+        json.dumps(
+            {
+                "run_id": run_id,
+                "timestamp": "2026-03-11T00:00:00+00:00",
+                "work_items": [],
+                "handoffs": [],
+                "transitions": [],
+                "summary": {
+                    "total_work_items": 0,
+                    "pending": 0,
+                    "in_progress": 0,
+                    "handoff": 0,
+                    "review": 0,
+                    "done": 0,
+                    "blocked": 0,
+                    "handoff_count": 0,
+                    "transition_count": 0,
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (ws.ai_dir / "artifacts" / "reports" / run_id).mkdir(parents=True, exist_ok=True)
+    (ws.ai_dir / "artifacts" / "reports" / run_id / "smoke.json").write_text(
+        json.dumps(
+            {
+                "run_id": run_id,
+                "name": "smoke",
+                "status": "pass",
+                "command": "echo ok",
+                "exit_code": 0,
+                "ts_start": "2026-03-11T00:00:00+00:00",
+                "ts_end": "2026-03-11T00:00:01+00:00",
+                "duration_seconds": 1.0,
+                "evidence": {},
+                "metrics": {},
+                "environment": {},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    state = ws.read_state()
+    state["last_run_id"] = run_id
+    ws.write_state(state)
+
+    monkeypatch.chdir(tmp_path)
+    result = runner.invoke(app, ["validate-artifacts"])
+
+    assert result.exit_code == 0
+    out = json.loads(result.output)
+    assert out["valid"] is True
+    assert out["run_id"] == run_id
 
 
 def test_stage_set_updates_state_for_valid_stage(tmp_path: Path, monkeypatch) -> None:
@@ -582,6 +846,83 @@ def test_audit_summary_reads_policy_check_for_last_run_id(tmp_path: Path, monkey
     assert out["policy"]["present"] is True
     assert out["policy"]["allowed"] is True
     assert out["policy"]["reason"] == "current"
+
+
+def test_audit_summary_includes_dispatch_summary_when_present(tmp_path: Path, monkeypatch) -> None:
+    ws = AIWorkspace(tmp_path)
+    ws.ensure_layout()
+    run_id = "run_dispatch_summary"
+    (ws.ai_dir / "runs" / run_id).mkdir(parents=True, exist_ok=True)
+    (ws.ai_dir / "runs" / run_id / "run.json").write_text(
+        json.dumps(
+            {
+                "run_id": run_id,
+                "timestamp": "2026-03-11T00:00:00+00:00",
+                "stage": "DEVELOP",
+                "run_type": "develop",
+                "result": "success",
+                "ok": True,
+                "mode": "full",
+                "verified": True,
+                "steps": {},
+                "artifacts": {
+                    "run_record": f".ai/runs/{run_id}/run.json",
+                    "develop_record": f".ai/runs/{run_id}/develop.json",
+                    "dispatch_record": f".ai/runs/{run_id}/dispatch.json",
+                    "gate_reports": [],
+                    "telemetry": ".ai/telemetry/events.jsonl",
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (ws.ai_dir / "runs" / run_id / "dispatch.json").write_text(
+        json.dumps(
+            {
+                "run_id": run_id,
+                "timestamp": "2026-03-11T00:00:00+00:00",
+                "work_items": [
+                    {
+                        "id": "item_1",
+                        "title": "demo",
+                        "status": "in_progress",
+                        "owner_role": "implementer",
+                        "created_at": "2026-03-11T00:00:00+00:00",
+                        "updated_at": "2026-03-11T00:01:00+00:00",
+                        "acceptance_refs": [],
+                    }
+                ],
+                "handoffs": [],
+                "transitions": [],
+                "summary": {
+                    "total_work_items": 1,
+                    "pending": 0,
+                    "in_progress": 1,
+                    "handoff": 0,
+                    "review": 0,
+                    "done": 0,
+                    "blocked": 0,
+                    "handoff_count": 0,
+                    "transition_count": 0,
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    state = ws.read_state()
+    state["stage"] = "DEV"
+    state["last_run_id"] = run_id
+    ws.write_state(state)
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["audit-summary"])
+
+    assert result.exit_code == 0
+    out = json.loads(result.output)
+    assert out["dispatch"]["present"] is True
+    assert out["dispatch"]["summary"]["in_progress"] == 1
 
 
 def test_self_check_passes_when_pr_state_and_artifacts_are_valid(tmp_path: Path, monkeypatch) -> None:

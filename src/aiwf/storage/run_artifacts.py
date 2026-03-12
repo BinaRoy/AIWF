@@ -56,9 +56,20 @@ def validate_run_artifacts(
     for report_path in report_paths:
         validate_payload(_read_json(report_path), gate_schema)
 
+    artifacts = run_payload.get("artifacts") or {}
+    dispatch_ref = artifacts.get("dispatch_record")
+    dispatch_present = False
+    if isinstance(dispatch_ref, str) and dispatch_ref:
+        dispatch_path = ws.root / dispatch_ref
+        if not dispatch_path.exists():
+            raise FileNotFoundError(f"Missing dispatch record: {dispatch_path}")
+        validate_payload(_read_json(dispatch_path), load_schema(repo_root, "dispatch_record.schema.json"))
+        dispatch_present = True
+
     return {
         "run_id": resolved_run_id,
         "gate_reports": len(report_paths),
+        "dispatch_present": dispatch_present,
         "run_payload": run_payload,
         "report_paths": report_paths,
     }

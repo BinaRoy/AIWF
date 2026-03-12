@@ -108,6 +108,142 @@ def test_gate_result_schema_rejects_missing_environment() -> None:
         validate_payload(payload, _schema("gate_result.schema.json"))
 
 
+def test_dispatch_record_schema_accepts_valid_payload() -> None:
+    payload = {
+        "run_id": "run_1",
+        "timestamp": "2026-03-11T00:00:00+00:00",
+        "work_items": [
+            {
+                "id": "item_1",
+                "title": "Define dispatch schema",
+                "status": "pending",
+                "owner_role": "manager",
+                "created_at": "2026-03-11T00:00:00+00:00",
+                "updated_at": "2026-03-11T00:00:00+00:00",
+                "acceptance_refs": [".ai/plan.json"],
+            }
+        ],
+        "handoffs": [
+            {
+                "work_item_id": "item_1",
+                "from_role": "manager",
+                "to_role": "implementer",
+                "reason": "Ready for implementation",
+                "evidence_refs": [".ai/runs/run_1/run.json"],
+                "timestamp": "2026-03-11T00:01:00+00:00",
+            }
+        ],
+        "transitions": [
+            {
+                "work_item_id": "item_1",
+                "from_status": "pending",
+                "to_status": "in_progress",
+                "reason": "Implementation started",
+                "timestamp": "2026-03-11T00:01:00+00:00",
+            }
+        ],
+        "summary": {
+            "total_work_items": 1,
+            "pending": 1,
+            "in_progress": 0,
+            "handoff": 0,
+            "review": 0,
+            "done": 0,
+            "blocked": 0,
+            "handoff_count": 1,
+            "transition_count": 1,
+        },
+    }
+
+    validate_payload(payload, _schema("dispatch_record.schema.json"))
+
+
+def test_dispatch_record_schema_rejects_missing_run_id() -> None:
+    payload = {
+        "timestamp": "2026-03-11T00:00:00+00:00",
+        "work_items": [],
+        "handoffs": [],
+        "transitions": [],
+        "summary": {
+            "total_work_items": 0,
+            "pending": 0,
+            "in_progress": 0,
+            "handoff": 0,
+            "review": 0,
+            "done": 0,
+            "blocked": 0,
+            "handoff_count": 0,
+            "transition_count": 0,
+        },
+    }
+
+    with pytest.raises(Exception):
+        validate_payload(payload, _schema("dispatch_record.schema.json"))
+
+
+def test_dispatch_record_schema_rejects_invalid_work_item_status() -> None:
+    payload = {
+        "run_id": "run_1",
+        "timestamp": "2026-03-11T00:00:00+00:00",
+        "work_items": [
+            {
+                "id": "item_1",
+                "title": "Bad status",
+                "status": "queued",
+                "owner_role": "manager",
+                "created_at": "2026-03-11T00:00:00+00:00",
+                "updated_at": "2026-03-11T00:00:00+00:00",
+                "acceptance_refs": [],
+            }
+        ],
+        "handoffs": [],
+        "transitions": [],
+        "summary": {
+            "total_work_items": 1,
+            "pending": 0,
+            "in_progress": 0,
+            "handoff": 0,
+            "review": 0,
+            "done": 0,
+            "blocked": 0,
+            "handoff_count": 0,
+            "transition_count": 0,
+        },
+    }
+
+    with pytest.raises(Exception):
+        validate_payload(payload, _schema("dispatch_record.schema.json"))
+
+
+def test_dispatch_record_schema_rejects_transition_without_statuses() -> None:
+    payload = {
+        "run_id": "run_1",
+        "timestamp": "2026-03-11T00:00:00+00:00",
+        "work_items": [],
+        "handoffs": [],
+        "transitions": [
+            {
+                "work_item_id": "item_1",
+                "timestamp": "2026-03-11T00:01:00+00:00",
+            }
+        ],
+        "summary": {
+            "total_work_items": 0,
+            "pending": 0,
+            "in_progress": 0,
+            "handoff": 0,
+            "review": 0,
+            "done": 0,
+            "blocked": 0,
+            "handoff_count": 0,
+            "transition_count": 1,
+        },
+    }
+
+    with pytest.raises(Exception):
+        validate_payload(payload, _schema("dispatch_record.schema.json"))
+
+
 def test_current_contract_examples_still_validate() -> None:
     state_payload = {
         "workflow_version": "0.1",

@@ -11,6 +11,7 @@ from aiwf.gate.gate_engine import GateEngine, GateSpec
 from aiwf.policy.policy_engine import PolicyEngine
 from aiwf.schema.json_validator import load_schema, validate_payload
 from aiwf.storage.ai_workspace import AIWorkspace
+from aiwf.storage.dispatch_artifacts import ensure_dispatch_record, has_unresolved_blocked_items
 from aiwf.telemetry.sink import TelemetrySink
 from aiwf.vcs.pr_workflow import evaluate_pr_workflow
 
@@ -171,6 +172,7 @@ class WorkflowEngine:
         def write_run_files(ok: bool, result: str, error: Optional[dict] = None) -> Dict[str, Any]:
             run_dir = self.ws.ai_dir / "runs" / resolved_run_id
             run_dir.mkdir(parents=True, exist_ok=True)
+            dispatch_record = f".ai/runs/{resolved_run_id}/dispatch.json"
 
             gate_reports: list[str] = []
             verify_step = steps.get("verify") or {}
@@ -192,6 +194,7 @@ class WorkflowEngine:
                 "artifacts": {
                     "run_record": f".ai/runs/{resolved_run_id}/run.json",
                     "develop_record": f".ai/runs/{resolved_run_id}/develop.json",
+                    "dispatch_record": dispatch_record,
                     "gate_reports": gate_reports,
                     "telemetry": ".ai/telemetry/events.jsonl",
                 },
@@ -212,6 +215,7 @@ class WorkflowEngine:
                 "artifacts": {
                     "run_record": f".ai/runs/{resolved_run_id}/run.json",
                     "develop_record": f".ai/runs/{resolved_run_id}/develop.json",
+                    "dispatch_record": dispatch_record,
                     "gate_reports": gate_reports,
                     "telemetry": ".ai/telemetry/events.jsonl",
                 },
@@ -243,6 +247,7 @@ class WorkflowEngine:
             run_id=resolved_run_id,
         )
         try:
+            ensure_dispatch_record(self.ws, self.repo_root, resolved_run_id)
             if strict_plan:
                 plan = self.ws.read_plan()
                 if plan is None:
@@ -303,6 +308,21 @@ class WorkflowEngine:
             else:
                 steps["verify"] = {"ok": True, "skipped": True, "verified": False}
                 self.telemetry.emit("develop_step", {"name": "verify", "ok": True, "skipped": True}, run_id=resolved_run_id)
+
+            if has_unresolved_blocked_items(self.ws, self.repo_root, resolved_run_id):
+                steps["dispatch"] = {"ok": False, "error": "Unresolved blocked work items in dispatch record"}
+                out = write_run_files(ok=False, result="failure")
+                state = self.ws.read_state()
+                state["last_run_id"] = resolved_run_id
+                state["last_run_type"] = "develop"
+                state["last_run_result"] = "failure"
+                self.ws.write_state(state)
+                self.telemetry.emit(
+                    "develop_finished",
+                    {"ok": False, "verified": verified, "mode": mode, "error": "dispatch_blocked"},
+                    run_id=resolved_run_id,
+                )
+                return out
 
             result = "success" if run_verify else "partial"
             out = write_run_files(ok=True, result=result)

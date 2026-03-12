@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional
 
 from aiwf.schema.json_validator import load_schema
 from aiwf.storage.ai_workspace import AIWorkspace
+from aiwf.storage.dispatch_artifacts import load_dispatch_record
 from aiwf.storage.run_artifacts import load_run_record
 
 
@@ -55,10 +56,21 @@ def build_audit_summary(ws: AIWorkspace, repo_root: Path) -> Dict[str, Any]:
     state = ws.read_state()
     run_id = state.get("last_run_id")
     run_result = None
+    dispatch = {"present": False, "summary": None}
     if run_id:
         try:
             _, run_payload = load_run_record(ws, repo_root, str(run_id))
             run_result = run_payload.get("result")
+            artifacts = run_payload.get("artifacts") or {}
+            if artifacts.get("dispatch_record"):
+                try:
+                    dispatch_payload = load_dispatch_record(ws, repo_root, str(run_id))
+                    dispatch = {
+                        "present": True,
+                        "summary": dispatch_payload.get("summary"),
+                    }
+                except FileNotFoundError:
+                    dispatch = {"present": False, "summary": None}
         except FileNotFoundError:
             run_result = None
 
@@ -74,6 +86,7 @@ def build_audit_summary(ws: AIWorkspace, repo_root: Path) -> Dict[str, Any]:
         "last_run_id": run_id,
         "last_run_result": run_result,
         "gate_counts": _gate_counts(state.get("gates") or {}),
+        "dispatch": dispatch,
         "policy": policy,
     }
 

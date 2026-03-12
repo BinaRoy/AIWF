@@ -74,6 +74,12 @@
             "null"
           ]
         },
+        "dispatch_record": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "gate_reports": {
           "type": "array",
           "items": {

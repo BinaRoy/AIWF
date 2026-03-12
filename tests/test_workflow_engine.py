@@ -4,9 +4,17 @@ import json
 import subprocess
 from pathlib import Path
 
+import pytest
 from jsonschema import validate
 
 from aiwf.orchestrator.workflow_engine import WorkflowEngine
+from aiwf.storage.dispatch_artifacts import (
+    add_handoff,
+    add_transition,
+    add_work_item,
+    initialize_dispatch_record,
+    load_dispatch_record,
+)
 from aiwf.storage.ai_workspace import AIWorkspace
 from aiwf.telemetry.sink import TelemetrySink
 
@@ -378,3 +386,198 @@ def test_develop_contract_error_writes_failure_records(tmp_path: Path) -> None:
     assert run_record["result"] == "failure"
     develop_record = _load_json(ws.ai_dir / "runs" / run_id / "develop.json")
     assert develop_record["error"]["type"] == "ContractError"
+
+
+def test_develop_initializes_dispatch_record_and_links_artifact(tmp_path: Path) -> None:
+    ws = AIWorkspace(tmp_path)
+    ws.ensure_layout()
+    ws.write_plan({"project_id": "p1", "version": 1, "tasks": []})
+    (ws.ai_dir / "config.yaml").write_text(
+        'workflow_version: "0.1"\n'
+        'gates:\n'
+        '  smoke: "python3 -c \\"print(123)\\""\n',
+        encoding="utf-8",
+    )
+
+    repo_root = Path(__file__).resolve().parents[1]
+    engine = WorkflowEngine(
+        repo_root=repo_root,
+        ws=ws,
+        telemetry=TelemetrySink(ws.ai_dir / "telemetry" / "events.jsonl"),
+    )
+
+    out = engine.develop(
+        run_verify=True,
+        sync_roles=True,
+        strict_plan=True,
+        roles_sync=lambda _rid: {"ok": True},
+    )
+
+    dispatch_path = ws.ai_dir / "runs" / out["run_id"] / "dispatch.json"
+    assert dispatch_path.exists()
+    run_record = _load_json(ws.ai_dir / "runs" / out["run_id"] / "run.json")
+    assert run_record["artifacts"]["dispatch_record"] == f".ai/runs/{out['run_id']}/dispatch.json"
+    develop_record = _load_json(ws.ai_dir / "runs" / out["run_id"] / "develop.json")
+    assert develop_record["artifacts"]["dispatch_record"] == f".ai/runs/{out['run_id']}/dispatch.json"
+
+
+def test_develop_fails_when_dispatch_record_has_unresolved_blocked_items(tmp_path: Path) -> None:
+    ws = AIWorkspace(tmp_path)
+    ws.ensure_layout()
+    ws.write_plan({"project_id": "p1", "version": 1, "tasks": []})
+    (ws.ai_dir / "config.yaml").write_text(
+        'workflow_version: "0.1"\n'
+        'gates:\n'
+        '  smoke: "python3 -c \\"print(123)\\""\n',
+        encoding="utf-8",
+    )
+
+    repo_root = Path(__file__).resolve().parents[1]
+    initialize_dispatch_record(ws, repo_root, "run_blocked")
+    add_work_item(
+        ws,
+        repo_root,
+        "run_blocked",
+        item_id="item_blocked",
+        title="Blocked work",
+        owner_role="implementer",
+        acceptance_refs=[],
+    )
+    add_transition(
+        ws,
+        repo_root,
+        "run_blocked",
+        work_item_id="item_blocked",
+        to_status="blocked",
+        reason="Missing dependency",
+    )
+
+    engine = WorkflowEngine(
+        repo_root=repo_root,
+        ws=ws,
+        telemetry=TelemetrySink(ws.ai_dir / "telemetry" / "events.jsonl"),
+    )
+
+    out = engine.develop(
+        run_verify=True,
+        sync_roles=True,
+        strict_plan=True,
+        run_id="run_blocked",
+        roles_sync=lambda _rid: {"ok": True},
+    )
+
+    assert out["ok"] is False
+    assert out["verified"] is True
+    run_record = _load_json(ws.ai_dir / "runs" / "run_blocked" / "run.json")
+    assert run_record["result"] == "failure"
+
+
+def test_dispatch_initialize_creates_empty_record(tmp_path: Path) -> None:
+    ws = AIWorkspace(tmp_path)
+    ws.ensure_layout()
+    repo_root = Path(__file__).resolve().parents[1]
+
+    record = initialize_dispatch_record(ws, repo_root, "run_dispatch_1")
+
+    assert record["run_id"] == "run_dispatch_1"
+    assert record["work_items"] == []
+    assert record["handoffs"] == []
+    assert record["transitions"] == []
+    assert record["summary"]["total_work_items"] == 0
+    assert (ws.ai_dir / "runs" / "run_dispatch_1" / "dispatch.json").exists()
+
+
+def test_dispatch_add_work_item_persists_and_updates_summary(tmp_path: Path) -> None:
+    ws = AIWorkspace(tmp_path)
+    ws.ensure_layout()
+    repo_root = Path(__file__).resolve().parents[1]
+    initialize_dispatch_record(ws, repo_root, "run_dispatch_2")
+
+    add_work_item(
+        ws,
+        repo_root,
+        "run_dispatch_2",
+        item_id="item_1",
+        title="Write dispatch helpers",
+        owner_role="manager",
+        acceptance_refs=[".ai/plan.json"],
+    )
+
+    record = load_dispatch_record(ws, repo_root, "run_dispatch_2")
+    assert len(record["work_items"]) == 1
+    assert record["work_items"][0]["id"] == "item_1"
+    assert record["work_items"][0]["status"] == "pending"
+    assert record["summary"]["total_work_items"] == 1
+    assert record["summary"]["pending"] == 1
+
+
+def test_dispatch_add_handoff_records_role_change_for_existing_item(tmp_path: Path) -> None:
+    ws = AIWorkspace(tmp_path)
+    ws.ensure_layout()
+    repo_root = Path(__file__).resolve().parents[1]
+    initialize_dispatch_record(ws, repo_root, "run_dispatch_3")
+    add_work_item(
+        ws,
+        repo_root,
+        "run_dispatch_3",
+        item_id="item_1",
+        title="Review dispatch contract",
+        owner_role="manager",
+        acceptance_refs=[],
+    )
+
+    add_handoff(
+        ws,
+        repo_root,
+        "run_dispatch_3",
+        work_item_id="item_1",
+        from_role="manager",
+        to_role="implementer",
+        reason="Ready for implementation",
+        evidence_refs=[".ai/runs/run_dispatch_3/run.json"],
+    )
+
+    record = load_dispatch_record(ws, repo_root, "run_dispatch_3")
+    assert len(record["handoffs"]) == 1
+    assert record["handoffs"][0]["to_role"] == "implementer"
+    assert record["summary"]["handoff_count"] == 1
+
+
+def test_dispatch_transition_allows_pending_to_in_progress_and_rejects_pending_to_done(
+    tmp_path: Path,
+) -> None:
+    ws = AIWorkspace(tmp_path)
+    ws.ensure_layout()
+    repo_root = Path(__file__).resolve().parents[1]
+    initialize_dispatch_record(ws, repo_root, "run_dispatch_4")
+    add_work_item(
+        ws,
+        repo_root,
+        "run_dispatch_4",
+        item_id="item_1",
+        title="Implement transition guard",
+        owner_role="implementer",
+        acceptance_refs=[],
+    )
+
+    add_transition(
+        ws,
+        repo_root,
+        "run_dispatch_4",
+        work_item_id="item_1",
+        to_status="in_progress",
+        reason="Started work",
+    )
+    record = load_dispatch_record(ws, repo_root, "run_dispatch_4")
+    assert record["work_items"][0]["status"] == "in_progress"
+    assert record["summary"]["in_progress"] == 1
+
+    with pytest.raises(ValueError):
+        add_transition(
+            ws,
+            repo_root,
+            "run_dispatch_4",
+            work_item_id="item_1",
+            to_status="done",
+            reason="Skip review",
+        )

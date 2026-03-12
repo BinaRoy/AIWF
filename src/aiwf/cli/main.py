@@ -33,6 +33,13 @@ from aiwf.runtime.roles_view import (
 from aiwf.runtime.state_view import allowed_stages, build_audit_summary, evaluate_stage_transition
 from aiwf.schema.json_validator import load_schema, validate_payload
 from aiwf.storage.ai_workspace import AIWorkspace
+from aiwf.storage.dispatch_artifacts import (
+    add_handoff,
+    add_transition,
+    add_work_item,
+    initialize_dispatch_record,
+    load_dispatch_record,
+)
 from aiwf.storage.run_artifacts import load_run_record, validate_run_artifacts
 from aiwf.telemetry.sink import TelemetrySink
 from aiwf.orchestrator.workflow_engine import ContractError, WorkflowEngine
@@ -43,10 +50,12 @@ stage_app = typer.Typer(add_completion=False)
 plan_app = typer.Typer(add_completion=False)
 risk_app = typer.Typer(add_completion=False)
 roles_app = typer.Typer(add_completion=False)
+dispatch_app = typer.Typer(add_completion=False)
 app.add_typer(stage_app, name="stage")
 app.add_typer(plan_app, name="plan")
 app.add_typer(risk_app, name="risk")
 app.add_typer(roles_app, name="roles")
+app.add_typer(dispatch_app, name="dispatch")
 
 def _repo_root() -> Path:
     return Path.cwd()
@@ -256,6 +265,101 @@ def audit_summary():
     summary = build_audit_summary(ws, _repo_root())
     summary["risk"] = risk_snapshot(ws, _repo_root())
     _print_json(summary)
+
+
+@dispatch_app.command("init")
+def dispatch_init(
+    run_id: str = typer.Option(..., "--run-id", help="Run id for the dispatch record."),
+):
+    """Initialize a run-scoped dispatch record."""
+    ws = AIWorkspace(_repo_root())
+    ws.ensure_layout()
+    _print_json(initialize_dispatch_record(ws, _repo_root(), run_id))
+
+
+@dispatch_app.command("add-item")
+def dispatch_add_item(
+    run_id: str = typer.Option(..., "--run-id", help="Run id for the dispatch record."),
+    id: str = typer.Option(..., "--id", help="Work item id."),
+    title: str = typer.Option(..., "--title", help="Work item title."),
+    owner_role: str = typer.Option(..., "--owner-role", help="Owning role."),
+    acceptance_ref: Optional[list[str]] = typer.Option(None, "--acceptance-ref", help="Acceptance evidence reference."),
+):
+    """Append a work item to the run dispatch record."""
+    ws = AIWorkspace(_repo_root())
+    ws.ensure_layout()
+    _print_json(
+        add_work_item(
+            ws,
+            _repo_root(),
+            run_id,
+            item_id=id,
+            title=title,
+            owner_role=owner_role,
+            acceptance_refs=list(acceptance_ref or []),
+        )
+    )
+
+
+@dispatch_app.command("handoff")
+def dispatch_handoff(
+    run_id: str = typer.Option(..., "--run-id", help="Run id for the dispatch record."),
+    work_item_id: str = typer.Option(..., "--work-item-id", help="Work item id."),
+    from_role: str = typer.Option(..., "--from-role", help="Current owning role."),
+    to_role: str = typer.Option(..., "--to-role", help="Next owning role."),
+    reason: Optional[str] = typer.Option(None, "--reason", help="Handoff reason."),
+    evidence_ref: Optional[list[str]] = typer.Option(None, "--evidence-ref", help="Evidence reference."),
+):
+    """Record a handoff for a run work item."""
+    ws = AIWorkspace(_repo_root())
+    ws.ensure_layout()
+    _print_json(
+        add_handoff(
+            ws,
+            _repo_root(),
+            run_id,
+            work_item_id=work_item_id,
+            from_role=from_role,
+            to_role=to_role,
+            reason=reason,
+            evidence_refs=list(evidence_ref or []),
+        )
+    )
+
+
+@dispatch_app.command("transition")
+def dispatch_transition(
+    run_id: str = typer.Option(..., "--run-id", help="Run id for the dispatch record."),
+    work_item_id: str = typer.Option(..., "--work-item-id", help="Work item id."),
+    to_status: str = typer.Option(..., "--to-status", help="Next work item status."),
+    reason: Optional[str] = typer.Option(None, "--reason", help="Transition reason."),
+):
+    """Record a state transition for a run work item."""
+    ws = AIWorkspace(_repo_root())
+    ws.ensure_layout()
+    try:
+        out = add_transition(
+            ws,
+            _repo_root(),
+            run_id,
+            work_item_id=work_item_id,
+            to_status=to_status,
+            reason=reason,
+        )
+    except ValueError as exc:
+        _print_json({"ok": False, "error": _error_message(exc)})
+        raise typer.Exit(code=1)
+    _print_json(out)
+
+
+@dispatch_app.command("status")
+def dispatch_status(
+    run_id: str = typer.Option(..., "--run-id", help="Run id for the dispatch record."),
+):
+    """Show current dispatch record for a run."""
+    ws = AIWorkspace(_repo_root())
+    ws.ensure_layout()
+    _print_json(load_dispatch_record(ws, _repo_root(), run_id))
 
 
 @app.command("self-check")
