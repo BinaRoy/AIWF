@@ -56,6 +56,14 @@ The target exit-code contract is:
 - `1` for execution failures after a valid command was accepted, such as a gate returning fail
 - `2` for invalid input or invalid task/workspace state
 
+The target status payload includes:
+
+- `current_task`
+- `tasks`
+- `last_verify.run_id`
+- `last_verify.result`
+- `last_verify.timestamp`
+
 The target workspace layout is:
 
 ```text

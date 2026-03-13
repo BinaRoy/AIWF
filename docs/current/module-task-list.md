@@ -136,7 +136,7 @@ Priority values:
 
 - `TASK-VERIFY-004`
   Title: Expose `last_verify.timestamp` in status output
-  Status: `defined`
+  Status: `done`
   Priority: `P1`
   Depends on: `TASK-VERIFY-001`
   Maps to: `orchestrator/task_engine.py`, `cli/main.py`, `tests/test_task_engine.py`, `tests/test_cli.py`

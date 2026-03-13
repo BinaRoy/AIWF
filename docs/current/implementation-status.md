@@ -29,7 +29,7 @@ The v2 refactor is largely implemented. The new task lifecycle, simplified `.ai/
 | 1.2 | `task_store.py` pure I/O layer | Complete | Implemented and covered by `tests/test_task_store.py` |
 | 1.3 | `task_engine.py` state machine + gate orchestration | Complete | Implemented and covered by `tests/test_task_engine.py` |
 | 1.4 | Simplified `ai_workspace.py` | Complete | Layout, config, and state follow the v2 direction |
-| 1.5 | New task lifecycle CLI | Mostly complete | Commands exist and are tested; `task new` syntax, `init` output, and invalid-state exit codes are aligned, while some verify/status gaps remain |
+| 1.5 | New task lifecycle CLI | Complete | Commands exist and are tested; `task new` syntax, `init` output, invalid-state exit codes, and status verify summary fields are aligned |
 | 1.6 | Delete deprecated modules | Complete | Deprecated Python modules/files and leftover empty package directories removed |
 | 1.7 | Update CI workflow | Partial | Workflow runs tests and uploads artifacts, but planned `aiwf init` / `aiwf verify` step is missing |
 
@@ -88,10 +88,6 @@ The following behavior is implemented and covered by tests:
 ---
 
 ## Current Deviations From Target
-
-### CLI contract deviations
-
-- `aiwf status` omits `last_verify.timestamp`.
 
 ### Implementation / packaging deviations
 

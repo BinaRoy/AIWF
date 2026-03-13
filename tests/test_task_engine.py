@@ -1,6 +1,7 @@
 """Tests for TaskEngine — state machine transitions and verification orchestration."""
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -241,6 +242,22 @@ def test_get_status_returns_summary(engine: TaskEngine, ws: AIWorkspace) -> None
     assert status["tasks"]["total"] == 2
     assert status["tasks"]["defined"] == 1
     assert status["tasks"]["in_progress"] == 1
+
+
+def test_get_status_includes_last_verify_timestamp(engine: TaskEngine, ws: AIWorkspace) -> None:
+    _set_gates(ws, {"pass_gate": f"{sys.executable} -c 'import sys; sys.exit(0)'"})
+    engine.new_task("Verified task")
+    engine.start_task("task-001")
+    engine.verify_task("task-001")
+
+    verify_record = json.loads(
+        (ws.ai_dir / "tasks" / "task-001" / "verify.json").read_text(encoding="utf-8")
+    )
+    status = engine.get_status()
+
+    assert status["last_verify"]["run_id"] == verify_record["run_id"]
+    assert status["last_verify"]["result"] == "pass"
+    assert status["last_verify"]["timestamp"] == verify_record["timestamp"]
 
 
 # ---------------------------------------------------------------------------

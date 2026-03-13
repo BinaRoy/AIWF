@@ -70,6 +70,26 @@ def test_status_empty_workspace(tmp_path: Path, monkeypatch) -> None:
     assert out["tasks"]["total"] == 0
 
 
+def test_status_includes_last_verify_timestamp(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init"])
+    _write_gates(tmp_path, {"pass_gate": _pass_gate_cmd()})
+    runner.invoke(app, ["task", "new", "Status task"])
+    runner.invoke(app, ["task", "start"])
+    runner.invoke(app, ["task", "verify"])
+
+    verify_record = json.loads(
+        (tmp_path / ".ai" / "tasks" / "task-001" / "verify.json").read_text(encoding="utf-8")
+    )
+    result = runner.invoke(app, ["status"])
+
+    assert result.exit_code == 0
+    out = json.loads(result.output)
+    assert out["last_verify"]["run_id"] == verify_record["run_id"]
+    assert out["last_verify"]["result"] == "pass"
+    assert out["last_verify"]["timestamp"] == verify_record["timestamp"]
+
+
 # ---------------------------------------------------------------------------
 # task new
 # ---------------------------------------------------------------------------

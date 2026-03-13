@@ -374,6 +374,7 @@ class TaskEngine:
         """
         state = self.ws.read_state()
         current = find_current_task(self.ws, self.repo_root)
+        last_verify = self._last_verify_summary(state.get("last_run_id"), state.get("last_run_result"))
         current_info = None
         if current:
             current_info = {
@@ -384,11 +385,29 @@ class TaskEngine:
         return {
             "current_task": current_info,
             "tasks": recount_tasks(self.ws, self.repo_root),
-            "last_verify": {
-                "run_id": state.get("last_run_id"),
-                "result": state.get("last_run_result"),
-            },
+            "last_verify": last_verify,
         }
+
+    def _last_verify_summary(
+        self, last_run_id: Optional[str], last_run_result: Optional[str]
+    ) -> Dict[str, Any]:
+        summary: Dict[str, Any] = {
+            "run_id": last_run_id,
+            "result": last_run_result,
+            "timestamp": None,
+        }
+        if not last_run_id:
+            return summary
+
+        for spec in reversed(list_tasks(self.ws, self.repo_root)):
+            verify_path = self.ws.ai_dir / "tasks" / spec["task_id"] / "verify.json"
+            if not verify_path.exists():
+                continue
+            verify_record = json.loads(verify_path.read_text(encoding="utf-8"))
+            if verify_record.get("run_id") == last_run_id:
+                summary["timestamp"] = verify_record.get("timestamp")
+                return summary
+        return summary
 
     def _resolve_task(
         self, task_id: Optional[str], *, expected_status: str

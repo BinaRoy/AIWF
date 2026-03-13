@@ -75,3 +75,12 @@ Every completed task must append one factual entry here after code/docs updates 
 - Result: pass
 - Current docs updated: `docs/reference/v2-refactoring-target.md`, `docs/current/module-task-list.md`, `docs/current/current-work-state.md`, `docs/current/implementation-status.md`, `docs/progress/change-log.md`
 - Follow-ups: Recommended next task is now `TASK-VERIFY-004`.
+
+## 2026-03-13 02:20 - Expose last_verify timestamp in status output
+
+- Summary: Updated task-engine status reporting so `aiwf status` includes `last_verify.timestamp` by resolving the latest persisted task verification record for the current `last_run_id`.
+- Files changed: `src/aiwf/orchestrator/task_engine.py`, `tests/test_task_engine.py`, `tests/test_cli.py`, `docs/reference/v2-refactoring-target.md`, `docs/current/module-task-list.md`, `docs/current/current-work-state.md`, `docs/current/implementation-status.md`, `docs/progress/change-log.md`
+- Verification: `PYTHONPATH=src python3 -m pytest tests/test_task_engine.py::test_get_status_includes_last_verify_timestamp tests/test_cli.py::test_status_includes_last_verify_timestamp -q` and `PYTHONPATH=src python3 -m pytest tests/test_task_engine.py tests/test_cli.py -q`
+- Result: pass
+- Current docs updated: `docs/reference/v2-refactoring-target.md`, `docs/current/module-task-list.md`, `docs/current/current-work-state.md`, `docs/current/implementation-status.md`, `docs/progress/change-log.md`
+- Follow-ups: Recommended next task is now `TASK-INIT-003`.
