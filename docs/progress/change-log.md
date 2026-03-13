@@ -84,3 +84,12 @@ Every completed task must append one factual entry here after code/docs updates 
 - Result: pass
 - Current docs updated: `docs/reference/v2-refactoring-target.md`, `docs/current/module-task-list.md`, `docs/current/current-work-state.md`, `docs/current/implementation-status.md`, `docs/progress/change-log.md`
 - Follow-ups: Recommended next task is now `TASK-INIT-003`.
+
+## 2026-03-13 02:40 - Align packaging metadata and CI smoke flow
+
+- Summary: Updated packaging metadata to use `src/` package discovery with `setuptools>=64` and expanded CI to install the package, run `aiwf init`, run `aiwf verify`, and then run the test suite.
+- Files changed: `pyproject.toml`, `.github/workflows/aiwf-verify.yml`, `tests/test_docs_workflow.py`, `docs/reference/v2-refactoring-target.md`, `docs/current/module-task-list.md`, `docs/current/current-work-state.md`, `docs/current/implementation-status.md`, `docs/progress/change-log.md`
+- Verification: `PYTHONPATH=src python3 -m pytest tests/test_docs_workflow.py -q`
+- Result: pass
+- Current docs updated: `docs/reference/v2-refactoring-target.md`, `docs/current/module-task-list.md`, `docs/current/current-work-state.md`, `docs/current/implementation-status.md`, `docs/progress/change-log.md`
+- Follow-ups: Recommended next task is now `TASK-STATE-003`.

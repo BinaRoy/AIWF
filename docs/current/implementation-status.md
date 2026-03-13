@@ -4,9 +4,9 @@ Last updated: 2026-03-13
 
 **Target reference:** `docs/reference/v2-refactoring-target.md`  
 **Assessment basis:** code in `src/`, `schemas/`, `tests/`, `.github/workflows/`, `pyproject.toml`  
-**Overall completion:** ~90%  
+**Overall completion:** ~95%  
 **Latest verified full test command:** `PYTHONPATH=src python3 -m pytest tests/ -q`  
-**Latest verified result:** `82 passed`
+**Latest verified result:** `84 passed`
 
 ---
 
@@ -15,9 +15,7 @@ Last updated: 2026-03-13
 The v2 refactor is largely implemented. The new task lifecycle, simplified `.ai/` workspace, new schemas, and rewritten tests are present and working. The main remaining gaps are:
 
 1. CLI contract deviations from the target still exist.
-2. CI workflow is only partially aligned with the target.
-3. `pyproject.toml` is not fully aligned with the target packaging spec.
-4. A few behavior details still differ from the target document.
+2. Only future-facing product expansion tasks remain in the tracked backlog.
 
 ---
 
@@ -31,7 +29,7 @@ The v2 refactor is largely implemented. The new task lifecycle, simplified `.ai/
 | 1.4 | Simplified `ai_workspace.py` | Complete | Layout, config, and state follow the v2 direction |
 | 1.5 | New task lifecycle CLI | Complete | Commands exist and are tested; `task new` syntax, `init` output, invalid-state exit codes, and status verify summary fields are aligned |
 | 1.6 | Delete deprecated modules | Complete | Deprecated Python modules/files and leftover empty package directories removed |
-| 1.7 | Update CI workflow | Partial | Workflow runs tests and uploads artifacts, but planned `aiwf init` / `aiwf verify` step is missing |
+| 1.7 | Update CI workflow | Complete | Workflow installs the package, runs `aiwf init`, runs `aiwf verify`, runs tests, and uploads artifacts |
 
 ---
 
@@ -82,18 +80,22 @@ The following behavior is implemented and covered by tests:
 5. `aiwf task verify` runs configured gates, writes gate artifacts, writes `verify.json`, and updates task state.
 6. `aiwf task close` requires successful verification and writes `record.json`.
 7. `aiwf task block`, `unblock`, and `retry` work with state-transition checks.
-8. `aiwf status` returns current task summary, task counts, and last verify result.
+8. `aiwf status` returns current task summary, task counts, and last verify summary including timestamp.
 9. Standalone `aiwf verify` runs configured gates outside task context.
+10. Packaging metadata uses `src/` package discovery and CI exercises installed `aiwf` smoke commands.
 
 ---
 
 ## Current Deviations From Target
 
-### Implementation / packaging deviations
+## Remaining Tracked Work
 
-- CI workflow does not yet run `aiwf init` and `aiwf verify`.
-- `pyproject.toml` does not yet include `[tool.setuptools.packages.find]`.
-- `build-system.requires` does not match the target document's `setuptools>=64` value.
+The remaining tracked work in `docs/current/module-task-list.md` is future-facing:
+
+- `TASK-STATE-003`
+- `TASK-FUTURE-001`
+- `TASK-FUTURE-002`
+- `TASK-FUTURE-003`
 
 ---
 

@@ -54,7 +54,7 @@ Priority values:
 
 - `TASK-INIT-003`
   Title: Align packaging metadata with v2 target install expectations
-  Status: `defined`
+  Status: `done`
   Priority: `P2`
   Depends on: `TASK-INIT-001`
   Maps to: `pyproject.toml`, `.github/workflows/aiwf-verify.yml`, `docs/current/implementation-status.md`
@@ -106,7 +106,7 @@ Priority values:
 ## M3. Verify And Record Evidence
 
 **Goal:** The framework runs real gates, records evidence, and ties verification back to task progress.  
-**Status summary:** Task-bound verification works; standalone verification evidence is incomplete.
+**Status summary:** Task-bound and standalone verification are implemented and aligned with the current status surface.
 
 ### Tasks
 

@@ -23,6 +23,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install ".[dev]"
 
+      - name: Run AIWF smoke flow
+        run: |
+          aiwf init
+          python -c "from pathlib import Path; Path('.ai/config.yaml').write_text('gates:\\n  smoke_pass: \"python -c ''import sys; sys.exit(0)''\"\\n', encoding='utf-8')"
+          aiwf verify
+
       - name: Run unit tests
         run: |
           PYTHONPATH=src python -m pytest tests/ -q

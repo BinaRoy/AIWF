@@ -92,6 +92,12 @@ The target data-contract direction is:
 - simplified `run_record.schema.json`
 - retained `gate_result.schema.json`
 
+The target packaging and CI direction is:
+
+- `pyproject.toml` uses `setuptools>=64`
+- setuptools package discovery reads packages from `src/`
+- CI installs the package, runs `aiwf init`, runs `aiwf verify`, and then runs the test suite
+
 The target intentionally does not include:
 
 - project scanning as a finished feature
