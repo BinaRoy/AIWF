@@ -14,13 +14,13 @@ Agents should read this file after the module/task list to know:
 
 ---
 
-current_focus: `Close the remaining documented v2 CLI contract gaps before moving to CI and packaging alignment`
+current_focus: `Close the remaining documented v2 verification and status contract gaps before moving to CI and packaging alignment`
 
-active_module: `M2. Define And Drive Tasks`
+active_module: `M3. Verify And Record Evidence`
 
-recommended_next_task: `TASK-LIFE-004`
+recommended_next_task: `TASK-VERIFY-004`
 
-why_this_next: `It is the earliest remaining P1 CLI contract gap on the active v2 path and will settle documented invalid-state exit semantics before lower-priority CI and packaging work.`
+why_this_next: `It is the earliest remaining P1 product-behavior gap on the active v2 path and will complete the documented status surface before lower-priority CI and packaging work.`
 
 blocked_tasks:
 
@@ -28,6 +28,7 @@ blocked_tasks:
 
 recently_completed:
 
+- `TASK-LIFE-004` align invalid-state exit codes with documented contract
 - `TASK-INIT-002` align `aiwf init` output with target JSON contract
 - `TASK-VERIFY-003` make standalone `aiwf verify` write `run.json`
 - `TASK-LIFE-003` align `task new` CLI contract with target syntax

@@ -95,7 +95,7 @@ Priority values:
 
 - `TASK-LIFE-004`
   Title: Align invalid-state exit codes with documented contract
-  Status: `defined`
+  Status: `done`
   Priority: `P1`
   Depends on: `TASK-LIFE-002`
   Maps to: `cli/main.py`, `tests/test_cli.py`, `docs/current/implementation-status.md`

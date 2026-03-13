@@ -66,3 +66,12 @@ Every completed task must append one factual entry here after code/docs updates 
 - Result: pass
 - Current docs updated: `README.md`, `docs/reference/v2-refactoring-target.md`, `docs/current/module-task-list.md`, `docs/current/current-work-state.md`, `docs/current/implementation-status.md`, `docs/progress/change-log.md`
 - Follow-ups: Recommended next task is now `TASK-LIFE-004`.
+
+## 2026-03-13 02:05 - Align invalid-state exit codes with documented contract
+
+- Summary: Updated CLI contract errors so invalid input and invalid task or workspace state return exit code `2`, while execution failures such as gate failures still return `1`.
+- Files changed: `src/aiwf/cli/main.py`, `tests/test_cli.py`, `docs/reference/v2-refactoring-target.md`, `docs/current/module-task-list.md`, `docs/current/current-work-state.md`, `docs/current/implementation-status.md`, `docs/progress/change-log.md`
+- Verification: `PYTHONPATH=src python3 -m pytest tests/test_cli.py::test_task_start_fails_when_none_defined tests/test_cli.py::test_task_current_fails_when_none_active tests/test_cli.py::test_task_close_rejects_without_verify tests/test_cli.py::test_verify_standalone_fails_no_gates -q` and `PYTHONPATH=src python3 -m pytest tests/test_cli.py -q`
+- Result: pass
+- Current docs updated: `docs/reference/v2-refactoring-target.md`, `docs/current/module-task-list.md`, `docs/current/current-work-state.md`, `docs/current/implementation-status.md`, `docs/progress/change-log.md`
+- Follow-ups: Recommended next task is now `TASK-VERIFY-004`.

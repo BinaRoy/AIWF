@@ -50,6 +50,12 @@ The target machine-readable init payload is:
 }
 ```
 
+The target exit-code contract is:
+
+- `0` for successful command completion
+- `1` for execution failures after a valid command was accepted, such as a gate returning fail
+- `2` for invalid input or invalid task/workspace state
+
 The target workspace layout is:
 
 ```text

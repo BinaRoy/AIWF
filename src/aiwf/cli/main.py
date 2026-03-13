@@ -31,6 +31,11 @@ def _error_message(exc: Exception) -> str:
     return msg[:300]
 
 
+def _exit_contract_error(payload: dict) -> None:
+    _print_json(payload)
+    raise typer.Exit(code=2)
+
+
 def _make_engine(ws: AIWorkspace) -> TaskEngine:
     telemetry = TelemetrySink(ws.ai_dir / "telemetry" / "events.jsonl")
     return TaskEngine(repo_root=_repo_root(), ws=ws, telemetry=telemetry)
@@ -115,8 +120,7 @@ def task_start(
     try:
         spec = engine.start_task(task_id)
     except (TaskStateError, ValueError) as exc:
-        _print_json({"ok": False, "error": _error_message(exc)})
-        raise typer.Exit(code=1)
+        _exit_contract_error({"ok": False, "error": _error_message(exc)})
     _print_json({"ok": True, "task_id": spec["task_id"], "status": spec["status"]})
 
 
@@ -135,8 +139,7 @@ def task_verify(
     try:
         result = engine.verify_task(task_id)
     except (TaskStateError, ValueError) as exc:
-        _print_json({"ok": False, "error": _error_message(exc)})
-        raise typer.Exit(code=1)
+        _exit_contract_error({"ok": False, "error": _error_message(exc)})
     _print_json(result)
     if not result["ok"]:
         raise typer.Exit(code=1)
@@ -157,8 +160,7 @@ def task_close(
     try:
         record = engine.close_task(task_id)
     except TaskStateError as exc:
-        _print_json({"ok": False, "error": _error_message(exc)})
-        raise typer.Exit(code=1)
+        _exit_contract_error({"ok": False, "error": _error_message(exc)})
     _print_json({"ok": True, "task_id": record["task_id"], "status": record["status"]})
 
 
@@ -178,8 +180,7 @@ def task_block(
     try:
         spec = engine.block_task(task_id, reason=reason)
     except TaskStateError as exc:
-        _print_json({"ok": False, "error": _error_message(exc)})
-        raise typer.Exit(code=1)
+        _exit_contract_error({"ok": False, "error": _error_message(exc)})
     _print_json({"ok": True, "task_id": spec["task_id"], "status": spec["status"], "reason": spec["block_reason"]})
 
 
@@ -198,8 +199,7 @@ def task_unblock(
     try:
         spec = engine.unblock_task(task_id)
     except TaskStateError as exc:
-        _print_json({"ok": False, "error": _error_message(exc)})
-        raise typer.Exit(code=1)
+        _exit_contract_error({"ok": False, "error": _error_message(exc)})
     _print_json({"ok": True, "task_id": spec["task_id"], "status": spec["status"]})
 
 
@@ -218,8 +218,7 @@ def task_retry(
     try:
         spec = engine.retry_task(task_id)
     except (TaskStateError, ValueError) as exc:
-        _print_json({"ok": False, "error": _error_message(exc)})
-        raise typer.Exit(code=1)
+        _exit_contract_error({"ok": False, "error": _error_message(exc)})
     _print_json({"ok": True, "task_id": spec["task_id"], "status": spec["status"]})
 
 
@@ -235,8 +234,7 @@ def task_current() -> None:
     from aiwf.storage.task_store import find_current_task
     spec = find_current_task(ws, _repo_root())
     if spec is None:
-        _print_json({"ok": False, "error": "No task is currently in_progress"})
-        raise typer.Exit(code=1)
+        _exit_contract_error({"ok": False, "error": "No task is currently in_progress"})
     _print_json(spec)
 
 
@@ -271,8 +269,7 @@ def verify_standalone() -> None:
     cfg = ws.read_config()
     gates_cfg = cfg.get("gates") or {}
     if not gates_cfg:
-        _print_json({"ok": False, "error": "No gates configured in .ai/config.yaml"})
-        raise typer.Exit(code=1)
+        _exit_contract_error({"ok": False, "error": "No gates configured in .ai/config.yaml"})
 
     run_id = _dt.datetime.now(_dt.timezone.utc).strftime("run_%Y%m%d_%H%M%S")
     reports_dir = ws.ai_dir / "runs" / run_id

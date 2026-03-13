@@ -121,7 +121,7 @@ def test_task_start_fails_when_none_defined(tmp_path: Path, monkeypatch) -> None
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["init"])
     result = runner.invoke(app, ["task", "start"])
-    assert result.exit_code != 0
+    assert result.exit_code == 2
     out = json.loads(result.output)
     assert out["ok"] is False
 
@@ -146,7 +146,7 @@ def test_task_current_fails_when_none_active(tmp_path: Path, monkeypatch) -> Non
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["init"])
     result = runner.invoke(app, ["task", "current"])
-    assert result.exit_code == 1
+    assert result.exit_code == 2
     out = json.loads(result.output)
     assert out["ok"] is False
 
@@ -218,7 +218,7 @@ def test_task_close_rejects_without_verify(tmp_path: Path, monkeypatch) -> None:
     runner.invoke(app, ["task", "new", "No verify"])
     runner.invoke(app, ["task", "start"])
     result = runner.invoke(app, ["task", "close"])
-    assert result.exit_code != 0
+    assert result.exit_code == 2
     out = json.loads(result.output)
     assert out["ok"] is False
 
@@ -274,7 +274,7 @@ def test_verify_standalone_fails_no_gates(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["init"])
     result = runner.invoke(app, ["verify"])
-    assert result.exit_code == 1
+    assert result.exit_code == 2
     out = json.loads(result.output)
     assert out["ok"] is False
 
