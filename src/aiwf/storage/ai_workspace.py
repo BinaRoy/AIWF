@@ -3,73 +3,21 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import yaml
 
-DEFAULT_CONFIG_YAML = """workflow_version: "0.1"
+DEFAULT_CONFIG_YAML = """# AIWF configuration
+# Add gate commands below. Each gate is a shell command that exits 0 on success.
+# Example:
+#   gates:
+#     unit_tests: "pytest -q"
+#     lint: "ruff check src"
 gates: {}
-paths:
-  allow:
-    - "src/**"
-  deny:
-    - ".git/**"
-    - ".ai/**"
-  require_approval:
-    - "ci/**"
-  require_adr:
-    - "ci/**"
 telemetry:
   enabled: true
-git:
-  remote: origin
-  default_branch: main
-  protected_branches:
-    - main
-  require_pr: true
-process_policy:
-  require_sync_before_dev: true
-  require_pr_before_merge: true
 """
 
-SELF_HOSTED_CONFIG_YAML = """workflow_version: "0.1"
-gates:
-  unit_tests: "PYTHONPATH=src python3 -m pytest -q"
-paths:
-  allow:
-    - "src/**"
-    - "tests/**"
-    - "schemas/**"
-    - "docs/**"
-    - "README.md"
-    - ".gitignore"
-    - "pyproject.toml"
-    - "AGENTS.md"
-    - ".github/**"
-  deny:
-    - ".git/**"
-  require_approval:
-    - "ci/**"
-  require_adr:
-    - "ci/**"
-telemetry:
-  enabled: true
-git:
-  remote: origin
-  default_branch: dev
-  protected_branches:
-    - main
-    - dev
-  require_pr: true
-process_policy:
-  require_sync_before_dev: true
-  require_pr_before_merge: true
-  fixed_loop:
-    enabled: true
-    required_stage: DEV
-    required_gates:
-      - "unit_tests"
-"""
 
 @dataclass
 class AIWorkspace:
@@ -80,8 +28,7 @@ class AIWorkspace:
         return self.root / ".ai"
 
     def ensure_layout(self) -> None:
-        (self.ai_dir / "artifacts" / "reports").mkdir(parents=True, exist_ok=True)
-        (self.ai_dir / "memory" / "adr").mkdir(parents=True, exist_ok=True)
+        (self.ai_dir / "tasks").mkdir(parents=True, exist_ok=True)
         (self.ai_dir / "runs").mkdir(parents=True, exist_ok=True)
         (self.ai_dir / "telemetry").mkdir(parents=True, exist_ok=True)
 
@@ -94,16 +41,18 @@ class AIWorkspace:
             state.write_text(
                 json.dumps(
                     {
-                        "workflow_version": "0.1",
-                        "stage": "INIT",
+                        "version": "0.2",
                         "current_task": None,
-                        "branch": None,
                         "last_run_id": None,
-                        "last_run_type": None,
                         "last_run_result": None,
-                        "retry_count": 0,
-                        "gates": {},
-                        "plan_progress": None,
+                        "task_counts": {
+                            "total": 0,
+                            "defined": 0,
+                            "in_progress": 0,
+                            "done": 0,
+                            "failed": 0,
+                            "blocked": 0,
+                        },
                     },
                     indent=2,
                 )
@@ -120,15 +69,3 @@ class AIWorkspace:
     def read_config(self) -> Dict[str, Any]:
         return yaml.safe_load((self.ai_dir / "config.yaml").read_text(encoding="utf-8")) or {}
 
-    def read_plan(self) -> Optional[Dict[str, Any]]:
-        p = self.ai_dir / "plan.json"
-        if not p.exists():
-            return None
-        return json.loads(p.read_text(encoding="utf-8"))
-
-    def write_plan(self, plan: Dict[str, Any]) -> None:
-        (self.ai_dir / "plan.json").write_text(json.dumps(plan, indent=2) + "\n", encoding="utf-8")
-
-    def write_self_hosted_config(self) -> None:
-        self.ensure_layout()
-        (self.ai_dir / "config.yaml").write_text(SELF_HOSTED_CONFIG_YAML, encoding="utf-8")

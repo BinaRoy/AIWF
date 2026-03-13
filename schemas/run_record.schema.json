@@ -1,96 +1,25 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "required": [
-    "run_id",
-    "timestamp",
-    "stage",
-    "run_type",
-    "result",
-    "ok",
-    "artifacts"
-  ],
+  "required": ["run_id", "timestamp", "result", "ok", "gates"],
   "properties": {
-    "run_id": {
-      "type": "string"
-    },
-    "timestamp": {
-      "type": "string"
-    },
-    "stage": {
-      "type": "string"
-    },
-    "run_type": {
-      "type": "string",
-      "enum": [
-        "develop",
-        "verify"
-      ]
-    },
-    "result": {
-      "type": "string",
-      "enum": [
-        "success",
-        "failure",
-        "partial"
-      ]
-    },
-    "mode": {
-      "type": "string",
-      "enum": [
-        "full",
-        "preflight"
-      ]
-    },
-    "verified": {
-      "type": "boolean"
-    },
-    "ok": {
-      "type": "boolean"
-    },
-    "steps": {
-      "type": "object"
-    },
-    "results": {
+    "run_id": { "type": "string" },
+    "timestamp": { "type": "string" },
+    "task_id": { "type": ["string", "null"] },
+    "result": { "type": "string", "enum": ["pass", "fail"] },
+    "ok": { "type": "boolean" },
+    "gates": {
       "type": "object",
       "additionalProperties": {
-        "type": "object"
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": { "type": "string", "enum": ["pass", "fail", "skip"] },
+          "exit_code": { "type": ["integer", "null"] },
+          "duration_seconds": { "type": "number" }
+        },
+        "additionalProperties": true
       }
-    },
-    "artifacts": {
-      "type": "object",
-      "required": [
-        "run_record",
-        "gate_reports",
-        "telemetry"
-      ],
-      "properties": {
-        "run_record": {
-          "type": "string"
-        },
-        "develop_record": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "dispatch_record": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "gate_reports": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "telemetry": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": false
     }
   },
   "additionalProperties": false

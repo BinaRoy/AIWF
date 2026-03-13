@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["task_id", "title", "status", "created_at", "updated_at"],
+  "properties": {
+    "task_id": { "type": "string" },
+    "title": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["defined", "in_progress", "verifying", "done", "failed", "blocked"]
+    },
+    "created_at": { "type": "string" },
+    "updated_at": { "type": "string" },
+    "scope": { "type": ["string", "null"] },
+    "acceptance": { "type": ["string", "null"] },
+    "affected_files": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "verify_results": { "type": ["object", "null"] },
+    "block_reason": { "type": ["string", "null"] },
+    "closed_at": { "type": ["string", "null"] }
+  },
+  "additionalProperties": false
+}

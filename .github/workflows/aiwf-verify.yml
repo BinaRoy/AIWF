@@ -1,4 +1,4 @@
-name: AIWF Develop Gate
+name: AIWF CI
 
 on:
   pull_request:
@@ -21,28 +21,11 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]"
+          pip install ".[dev]"
 
-      - name: Initialize workspace
-        run: aiwf init --self-hosted
-
-      - name: Seed minimal plan and role workflow
+      - name: Run unit tests
         run: |
-          cat > .ai/plan.json <<'JSON'
-          {
-            "project_id": "aiwf",
-            "version": 1,
-            "tasks": [
-              {"id": "PR-CHECK", "status": "completed"}
-            ]
-          }
-          JSON
-          aiwf roles init
-
-      - name: Run primary develop gate
-        run: |
-          aiwf develop
-          aiwf audit-summary
+          PYTHONPATH=src python -m pytest tests/ -q
 
       - name: Upload AIWF artifacts
         if: always()
@@ -52,6 +35,5 @@ jobs:
           path: |
             .ai/state.json
             .ai/runs
-            .ai/artifacts/reports
             .ai/telemetry/events.jsonl
           if-no-files-found: warn

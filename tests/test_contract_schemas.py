@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 import json
 from pathlib import Path
 
@@ -14,305 +13,242 @@ def _schema(name: str) -> dict:
     return json.loads((repo_root / "schemas" / name).read_text(encoding="utf-8"))
 
 
-def test_plan_schema_rejects_task_without_status() -> None:
-    payload = {
-        "project_id": "aiwf",
-        "version": 1,
-        "tasks": [{"id": "PR-CHECK"}],
+# ---------------------------------------------------------------------------
+# task_spec.schema.json
+# ---------------------------------------------------------------------------
+
+def _valid_spec() -> dict:
+    return {
+        "task_id": "task-001",
+        "title": "Implement login",
+        "status": "defined",
+        "created_at": "2026-03-12T10:00:00Z",
+        "updated_at": "2026-03-12T10:00:00Z",
+        "scope": "Add /login endpoint",
+        "acceptance": "POST /login returns 200",
+        "affected_files": ["src/auth.py"],
+        "verify_results": None,
+        "block_reason": None,
+        "closed_at": None,
     }
 
+
+def test_task_spec_schema_accepts_valid_spec() -> None:
+    validate_payload(_valid_spec(), _schema("task_spec.schema.json"))
+
+
+def test_task_spec_schema_rejects_missing_title() -> None:
+    p = _valid_spec()
+    del p["title"]
     with pytest.raises(Exception):
-        validate_payload(payload, _schema("plan.schema.json"))
+        validate_payload(p, _schema("task_spec.schema.json"))
 
 
-def test_state_schema_rejects_unknown_top_level_field() -> None:
-    payload = {
-        "workflow_version": "0.1",
-        "stage": "DEV",
+def test_task_spec_schema_rejects_invalid_status() -> None:
+    p = _valid_spec()
+    p["status"] = "unknown"
+    with pytest.raises(Exception):
+        validate_payload(p, _schema("task_spec.schema.json"))
+
+
+def test_task_spec_schema_allows_null_optional_fields() -> None:
+    p = _valid_spec()
+    p["scope"] = None
+    p["acceptance"] = None
+    p["affected_files"] = []
+    validate_payload(p, _schema("task_spec.schema.json"))
+
+
+def test_task_spec_schema_rejects_unknown_field() -> None:
+    p = _valid_spec()
+    p["unexpected"] = True
+    with pytest.raises(Exception):
+        validate_payload(p, _schema("task_spec.schema.json"))
+
+
+# ---------------------------------------------------------------------------
+# task_record.schema.json
+# ---------------------------------------------------------------------------
+
+def _valid_record() -> dict:
+    return {
+        "task_id": "task-001",
+        "title": "Implement login",
+        "status": "done",
+        "closed_at": "2026-03-12T11:00:00Z",
+        "last_run_id": "run_20260312_110000",
+        "gates_passed": ["tests", "lint"],
+    }
+
+
+def test_task_record_schema_accepts_valid_record() -> None:
+    validate_payload(_valid_record(), _schema("task_record.schema.json"))
+
+
+def test_task_record_schema_rejects_non_done_status() -> None:
+    p = _valid_record()
+    p["status"] = "in_progress"
+    with pytest.raises(Exception):
+        validate_payload(p, _schema("task_record.schema.json"))
+
+
+def test_task_record_schema_rejects_missing_task_id() -> None:
+    p = _valid_record()
+    del p["task_id"]
+    with pytest.raises(Exception):
+        validate_payload(p, _schema("task_record.schema.json"))
+
+
+# ---------------------------------------------------------------------------
+# task_verify.schema.json
+# ---------------------------------------------------------------------------
+
+def _valid_verify() -> dict:
+    return {
+        "task_id": "task-001",
+        "run_id": "run_20260312_110000",
+        "timestamp": "2026-03-12T11:00:00Z",
+        "gates": {
+            "tests": {"status": "pass", "exit_code": 0, "duration_seconds": 1.5}
+        },
+        "all_passed": True,
+    }
+
+
+def test_task_verify_schema_accepts_valid_verify() -> None:
+    validate_payload(_valid_verify(), _schema("task_verify.schema.json"))
+
+
+def test_task_verify_schema_rejects_missing_run_id() -> None:
+    p = _valid_verify()
+    del p["run_id"]
+    with pytest.raises(Exception):
+        validate_payload(p, _schema("task_verify.schema.json"))
+
+
+def test_task_verify_schema_rejects_missing_all_passed() -> None:
+    p = _valid_verify()
+    del p["all_passed"]
+    with pytest.raises(Exception):
+        validate_payload(p, _schema("task_verify.schema.json"))
+
+
+# ---------------------------------------------------------------------------
+# state.schema.json (v2)
+# ---------------------------------------------------------------------------
+
+def _valid_state() -> dict:
+    return {
+        "version": "0.2",
         "current_task": None,
-        "branch": None,
-        "last_run_id": "run_1",
-        "last_run_type": "develop",
-        "last_run_result": "success",
-        "retry_count": 0,
-        "gates": {},
-        "plan_progress": None,
-        "unexpected": True,
-    }
-
-    with pytest.raises(Exception):
-        validate_payload(payload, _schema("state.schema.json"))
-
-
-def test_run_record_schema_rejects_unknown_top_level_field() -> None:
-    payload = {
-        "run_id": "run_1",
-        "timestamp": "2026-03-09T00:00:00+00:00",
-        "stage": "VERIFY",
-        "run_type": "verify",
-        "result": "success",
-        "ok": True,
-        "results": {},
-        "artifacts": {
-            "run_record": ".ai/runs/run_1/run.json",
-            "gate_reports": [".ai/artifacts/reports/run_1/smoke.json"],
-            "telemetry": ".ai/telemetry/events.jsonl",
+        "last_run_id": None,
+        "last_run_result": None,
+        "task_counts": {
+            "total": 0,
+            "defined": 0,
+            "in_progress": 0,
+            "done": 0,
+            "failed": 0,
+            "blocked": 0,
         },
-        "unexpected": True,
     }
 
+
+def test_state_schema_accepts_valid_state() -> None:
+    validate_payload(_valid_state(), _schema("state.schema.json"))
+
+
+def test_state_schema_accepts_state_with_active_task() -> None:
+    p = _valid_state()
+    p["current_task"] = "task-001"
+    p["last_run_id"] = "run_20260312_110000"
+    p["last_run_result"] = "pass"
+    p["task_counts"]["total"] = 1
+    p["task_counts"]["in_progress"] = 1
+    validate_payload(p, _schema("state.schema.json"))
+
+
+def test_state_schema_rejects_missing_task_counts() -> None:
+    p = _valid_state()
+    del p["task_counts"]
     with pytest.raises(Exception):
-        validate_payload(payload, _schema("run_record.schema.json"))
+        validate_payload(p, _schema("state.schema.json"))
 
 
-def test_develop_record_schema_rejects_unknown_top_level_field() -> None:
-    payload = {
-        "run_id": "run_1",
-        "timestamp": "2026-03-09T00:00:00+00:00",
-        "mode": "full",
-        "verified": True,
+def test_state_schema_rejects_unknown_field() -> None:
+    p = _valid_state()
+    p["unexpected"] = True
+    with pytest.raises(Exception):
+        validate_payload(p, _schema("state.schema.json"))
+
+
+def test_state_schema_rejects_invalid_last_run_result() -> None:
+    p = _valid_state()
+    p["last_run_result"] = "success"  # old v1 value, not valid in v2
+    with pytest.raises(Exception):
+        validate_payload(p, _schema("state.schema.json"))
+
+
+# ---------------------------------------------------------------------------
+# run_record.schema.json (v2 simplified)
+# ---------------------------------------------------------------------------
+
+def _valid_run_record() -> dict:
+    return {
+        "run_id": "run_20260312_110000",
+        "timestamp": "2026-03-12T11:00:00Z",
+        "task_id": "task-001",
+        "result": "pass",
         "ok": True,
-        "steps": {
-            "plan": {"ok": True},
-            "roles_sync": {"ok": True},
-        "verify": {"ok": True},
-    },
-        "artifacts": {
-            "run_record": ".ai/runs/run_1/run.json",
-            "develop_record": ".ai/runs/run_1/develop.json",
-            "gate_reports": [".ai/artifacts/reports/run_1/smoke.json"],
-            "telemetry": ".ai/telemetry/events.jsonl",
+        "gates": {
+            "tests": {"status": "pass", "exit_code": 0, "duration_seconds": 1.5}
         },
-        "unexpected": True,
     }
 
+
+def test_run_record_schema_accepts_valid_run() -> None:
+    validate_payload(_valid_run_record(), _schema("run_record.schema.json"))
+
+
+def test_run_record_schema_accepts_null_task_id() -> None:
+    p = _valid_run_record()
+    p["task_id"] = None
+    validate_payload(p, _schema("run_record.schema.json"))
+
+
+def test_run_record_schema_rejects_unknown_field() -> None:
+    p = _valid_run_record()
+    p["unexpected"] = True
     with pytest.raises(Exception):
-        validate_payload(payload, _schema("develop_record.schema.json"))
+        validate_payload(p, _schema("run_record.schema.json"))
 
 
-def test_gate_result_schema_rejects_missing_environment() -> None:
-    payload = {
+# ---------------------------------------------------------------------------
+# gate_result.schema.json (unchanged)
+# ---------------------------------------------------------------------------
+
+def _valid_gate_result() -> dict:
+    return {
         "run_id": "run_1",
-        "name": "smoke",
+        "name": "tests",
         "status": "pass",
-        "command": "echo ok",
+        "command": "pytest -q",
         "exit_code": 0,
-        "ts_start": "2026-03-09T00:00:00+00:00",
-        "ts_end": "2026-03-09T00:00:01+00:00",
-        "duration_seconds": 1.0,
-        "evidence": {},
-        "metrics": {},
-    }
-
-    with pytest.raises(Exception):
-        validate_payload(payload, _schema("gate_result.schema.json"))
-
-
-def test_dispatch_record_schema_accepts_valid_payload() -> None:
-    payload = {
-        "run_id": "run_1",
-        "timestamp": "2026-03-11T00:00:00+00:00",
-        "work_items": [
-            {
-                "id": "item_1",
-                "title": "Define dispatch schema",
-                "status": "pending",
-                "owner_role": "manager",
-                "created_at": "2026-03-11T00:00:00+00:00",
-                "updated_at": "2026-03-11T00:00:00+00:00",
-                "acceptance_refs": [".ai/plan.json"],
-            }
-        ],
-        "handoffs": [
-            {
-                "work_item_id": "item_1",
-                "from_role": "manager",
-                "to_role": "implementer",
-                "reason": "Ready for implementation",
-                "evidence_refs": [".ai/runs/run_1/run.json"],
-                "timestamp": "2026-03-11T00:01:00+00:00",
-            }
-        ],
-        "transitions": [
-            {
-                "work_item_id": "item_1",
-                "from_status": "pending",
-                "to_status": "in_progress",
-                "reason": "Implementation started",
-                "timestamp": "2026-03-11T00:01:00+00:00",
-            }
-        ],
-        "summary": {
-            "total_work_items": 1,
-            "pending": 1,
-            "in_progress": 0,
-            "handoff": 0,
-            "review": 0,
-            "done": 0,
-            "blocked": 0,
-            "handoff_count": 1,
-            "transition_count": 1,
-        },
-    }
-
-    validate_payload(payload, _schema("dispatch_record.schema.json"))
-
-
-def test_dispatch_record_schema_rejects_missing_run_id() -> None:
-    payload = {
-        "timestamp": "2026-03-11T00:00:00+00:00",
-        "work_items": [],
-        "handoffs": [],
-        "transitions": [],
-        "summary": {
-            "total_work_items": 0,
-            "pending": 0,
-            "in_progress": 0,
-            "handoff": 0,
-            "review": 0,
-            "done": 0,
-            "blocked": 0,
-            "handoff_count": 0,
-            "transition_count": 0,
-        },
-    }
-
-    with pytest.raises(Exception):
-        validate_payload(payload, _schema("dispatch_record.schema.json"))
-
-
-def test_dispatch_record_schema_rejects_invalid_work_item_status() -> None:
-    payload = {
-        "run_id": "run_1",
-        "timestamp": "2026-03-11T00:00:00+00:00",
-        "work_items": [
-            {
-                "id": "item_1",
-                "title": "Bad status",
-                "status": "queued",
-                "owner_role": "manager",
-                "created_at": "2026-03-11T00:00:00+00:00",
-                "updated_at": "2026-03-11T00:00:00+00:00",
-                "acceptance_refs": [],
-            }
-        ],
-        "handoffs": [],
-        "transitions": [],
-        "summary": {
-            "total_work_items": 1,
-            "pending": 0,
-            "in_progress": 0,
-            "handoff": 0,
-            "review": 0,
-            "done": 0,
-            "blocked": 0,
-            "handoff_count": 0,
-            "transition_count": 0,
-        },
-    }
-
-    with pytest.raises(Exception):
-        validate_payload(payload, _schema("dispatch_record.schema.json"))
-
-
-def test_dispatch_record_schema_rejects_transition_without_statuses() -> None:
-    payload = {
-        "run_id": "run_1",
-        "timestamp": "2026-03-11T00:00:00+00:00",
-        "work_items": [],
-        "handoffs": [],
-        "transitions": [
-            {
-                "work_item_id": "item_1",
-                "timestamp": "2026-03-11T00:01:00+00:00",
-            }
-        ],
-        "summary": {
-            "total_work_items": 0,
-            "pending": 0,
-            "in_progress": 0,
-            "handoff": 0,
-            "review": 0,
-            "done": 0,
-            "blocked": 0,
-            "handoff_count": 0,
-            "transition_count": 1,
-        },
-    }
-
-    with pytest.raises(Exception):
-        validate_payload(payload, _schema("dispatch_record.schema.json"))
-
-
-def test_current_contract_examples_still_validate() -> None:
-    state_payload = {
-        "workflow_version": "0.1",
-        "stage": "DEV",
-        "current_task": None,
-        "branch": None,
-        "last_run_id": "run_1",
-        "last_run_type": "develop",
-        "last_run_result": "success",
-        "retry_count": 0,
-        "gates": {"smoke": {"status": "pass"}},
-        "plan_progress": {
-            "project_id": "aiwf",
-            "version": 1,
-            "counts": {"total": 1, "completed": 1, "in_progress": 0, "pending": 0},
-            "updated_at": "2026-03-09T00:00:00+00:00",
-        },
-    }
-    run_payload = {
-        "run_id": "run_1",
-        "timestamp": "2026-03-09T00:00:00+00:00",
-        "stage": "DEVELOP",
-        "run_type": "develop",
-        "mode": "full",
-        "verified": True,
-        "result": "success",
-        "ok": True,
-        "steps": {
-            "plan": {"ok": True},
-            "roles_sync": {"ok": True},
-            "verify": {"ok": True, "results": {"smoke": {"status": "pass"}}},
-        },
-        "artifacts": {
-            "run_record": ".ai/runs/run_1/run.json",
-            "develop_record": ".ai/runs/run_1/develop.json",
-            "gate_reports": [".ai/artifacts/reports/run_1/smoke.json"],
-            "telemetry": ".ai/telemetry/events.jsonl",
-        },
-    }
-    develop_payload = {
-        "run_id": "run_1",
-        "timestamp": "2026-03-09T00:00:00+00:00",
-        "mode": "full",
-        "verified": True,
-        "ok": True,
-        "steps": copy.deepcopy(run_payload["steps"]),
-        "artifacts": copy.deepcopy(run_payload["artifacts"]),
-    }
-    gate_payload = {
-        "run_id": "run_1",
-        "name": "smoke",
-        "status": "pass",
-        "command": "echo ok",
-        "exit_code": 0,
-        "ts_start": "2026-03-09T00:00:00+00:00",
-        "ts_end": "2026-03-09T00:00:01+00:00",
-        "duration_seconds": 1.0,
-        "evidence": {"stdout_tail": "ok\n", "stderr_tail": ""},
+        "ts_start": "2026-03-12T10:00:00Z",
+        "ts_end": "2026-03-12T10:00:02Z",
+        "duration_seconds": 2.0,
+        "evidence": {"stdout_tail": "1 passed\n", "stderr_tail": ""},
         "metrics": {},
         "environment": {"platform": "Linux", "python": "3.10.12"},
     }
-    plan_payload = {
-        "project_id": "aiwf",
-        "version": 1,
-        "tasks": [{"id": "PR-CHECK", "status": "completed"}],
-    }
 
-    validate_payload(plan_payload, _schema("plan.schema.json"))
-    validate_payload(state_payload, _schema("state.schema.json"))
-    validate_payload(run_payload, _schema("run_record.schema.json"))
-    validate_payload(develop_payload, _schema("develop_record.schema.json"))
-    validate_payload(gate_payload, _schema("gate_result.schema.json"))
+
+def test_gate_result_schema_unchanged() -> None:
+    validate_payload(_valid_gate_result(), _schema("gate_result.schema.json"))
+
+
+def test_gate_result_schema_rejects_missing_environment() -> None:
+    p = _valid_gate_result()
+    del p["environment"]
+    with pytest.raises(Exception):
+        validate_payload(p, _schema("gate_result.schema.json"))

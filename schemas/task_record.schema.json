@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["task_id", "title", "status", "closed_at", "last_run_id", "gates_passed"],
+  "properties": {
+    "task_id": { "type": "string" },
+    "title": { "type": "string" },
+    "status": { "type": "string", "enum": ["done"] },
+    "closed_at": { "type": "string" },
+    "last_run_id": { "type": "string" },
+    "gates_passed": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": false
+}

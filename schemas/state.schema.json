@@ -1,136 +1,25 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "required": [
-    "workflow_version",
-    "stage",
-    "current_task",
-    "branch",
-    "last_run_id",
-    "last_run_type",
-    "last_run_result",
-    "retry_count",
-    "gates",
-    "plan_progress"
-  ],
+  "required": ["version", "current_task", "last_run_id", "last_run_result", "task_counts"],
   "properties": {
-    "workflow_version": {
-      "type": "string"
-    },
-    "stage": {
-      "type": "string",
-      "enum": [
-        "INIT",
-        "SPEC",
-        "PLAN",
-        "DEV",
-        "VERIFY",
-        "SHIP",
-        "DONE",
-        "FAILED"
-      ]
-    },
-    "current_task": {
-      "type": [
-        "string",
-        "null"
-      ]
-    },
-    "branch": {
-      "type": [
-        "string",
-        "null"
-      ]
-    },
-    "last_run_id": {
-      "type": [
-        "string",
-        "null"
-      ]
-    },
-    "last_run_type": {
-      "type": [
-        "string",
-        "null"
-      ],
-      "enum": [
-        "develop",
-        "verify",
-        null
-      ]
-    },
+    "version": { "type": "string" },
+    "current_task": { "type": ["string", "null"] },
+    "last_run_id": { "type": ["string", "null"] },
     "last_run_result": {
-      "type": [
-        "string",
-        "null"
-      ],
-      "enum": [
-        "success",
-        "failure",
-        "partial",
-        null
-      ]
+      "type": ["string", "null"],
+      "enum": ["pass", "fail", null]
     },
-    "retry_count": {
-      "type": "integer",
-      "minimum": 0
-    },
-    "gates": {
+    "task_counts": {
       "type": "object",
-      "additionalProperties": {
-        "type": "object"
-      }
-    },
-    "plan_progress": {
-      "type": [
-        "object",
-        "null"
-      ],
-      "required": [
-        "project_id",
-        "version",
-        "counts",
-        "updated_at"
-      ],
+      "required": ["total", "defined", "in_progress", "done", "failed", "blocked"],
       "properties": {
-        "project_id": {
-          "type": "string"
-        },
-        "version": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "counts": {
-          "type": "object",
-          "required": [
-            "total",
-            "completed",
-            "in_progress",
-            "pending"
-          ],
-          "properties": {
-            "total": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "completed": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "in_progress": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "pending": {
-              "type": "integer",
-              "minimum": 0
-            }
-          },
-          "additionalProperties": false
-        },
-        "updated_at": {
-          "type": "string"
-        }
+        "total": { "type": "integer", "minimum": 0 },
+        "defined": { "type": "integer", "minimum": 0 },
+        "in_progress": { "type": "integer", "minimum": 0 },
+        "done": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "blocked": { "type": "integer", "minimum": 0 }
       },
       "additionalProperties": false
     }

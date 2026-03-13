@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["task_id", "run_id", "timestamp", "gates", "all_passed"],
+  "properties": {
+    "task_id": { "type": "string" },
+    "run_id": { "type": "string" },
+    "timestamp": { "type": "string" },
+    "gates": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "all_passed": { "type": "boolean" }
+  },
+  "additionalProperties": false
+}
