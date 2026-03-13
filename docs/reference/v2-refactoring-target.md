@@ -39,6 +39,17 @@ The target active CLI surface is:
 - `aiwf task unblock [task-id]`
 - `aiwf task retry [task-id]`
 
+The target machine-readable init payload is:
+
+```json
+{
+  "ok": true,
+  "workspace": ".ai",
+  "config": ".ai/config.yaml",
+  "state": ".ai/state.json"
+}
+```
+
 The target workspace layout is:
 
 ```text

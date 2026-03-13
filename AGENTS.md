@@ -20,16 +20,18 @@ Before changing code, read these files in order:
 1. `README.md`
 2. `docs/README.md`
 3. `docs/current/project-structure.md`
-4. `docs/current/agent-development-loop.md`
-5. `docs/current/implementation-status.md`
+4. `docs/current/module-task-list.md`
+5. `docs/current/current-work-state.md`
+6. `docs/current/agent-development-loop.md`
+7. `docs/current/implementation-status.md`
 
 If the task changes v2 behavior or contract, also read:
 
-6. `docs/reference/v2-refactoring-target.md`
+8. `docs/reference/v2-refactoring-target.md`
 
 At the end of every implementation task, update all affected current docs and append a factual entry to:
 
-7. `docs/progress/change-log.md`
+9. `docs/progress/change-log.md`
 
 ## Repo Boundary
 

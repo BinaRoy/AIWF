@@ -30,3 +30,39 @@ Every completed task must append one factual entry here after code/docs updates 
 - Result: pass
 - Current docs updated: `docs/progress/change-log.md`
 - Follow-ups: Revisit `.gitignore` only if the repository later decides to version selected `.ai/` fixtures or examples.
+
+## 2026-03-13 01:00 - Add module/task list and current work state docs
+
+- Summary: Added a user-capability-oriented module/task master list and a current work state companion so future agent sessions can follow a stable project checklist and know the default next task.
+- Files changed: `AGENTS.md`, `README.md`, `docs/README.md`, `docs/current/project-structure.md`, `docs/current/agent-development-loop.md`, `docs/current/module-task-list.md`, `docs/current/current-work-state.md`, `docs/current/implementation-status.md`, `tests/test_docs_workflow.py`, `docs/progress/change-log.md`
+- Verification: `PYTHONPATH=src python3 -m pytest tests/test_docs_workflow.py -q` and `PYTHONPATH=src python3 -m pytest tests/ -q`
+- Result: pass
+- Current docs updated: `AGENTS.md`, `README.md`, `docs/README.md`, `docs/current/project-structure.md`, `docs/current/agent-development-loop.md`, `docs/current/module-task-list.md`, `docs/current/current-work-state.md`, `docs/current/implementation-status.md`, `docs/progress/change-log.md`
+- Follow-ups: Keep `docs/current/current-work-state.md` synchronized whenever the recommended next task changes.
+
+## 2026-03-13 01:10 - Align task new CLI syntax with target contract
+
+- Summary: Changed `aiwf task new` to use a positional title argument, `--accept`, comma-separated `--files`, and a JSON response that includes the created spec path.
+- Files changed: `src/aiwf/cli/main.py`, `tests/test_cli.py`, `README.md`, `docs/current/module-task-list.md`, `docs/current/current-work-state.md`, `docs/current/implementation-status.md`, `docs/progress/change-log.md`
+- Verification: `PYTHONPATH=src python3 -m pytest tests/test_cli.py -q` and `PYTHONPATH=src python3 -m pytest tests/ -q`
+- Result: pass
+- Current docs updated: `README.md`, `docs/current/module-task-list.md`, `docs/current/current-work-state.md`, `docs/current/implementation-status.md`, `docs/progress/change-log.md`
+- Follow-ups: Recommended next task is now `TASK-VERIFY-003`.
+
+## 2026-03-13 01:20 - Write run.json for standalone verify
+
+- Summary: Updated standalone `aiwf verify` so it writes `.ai/runs/<run_id>/run.json` using the existing run record contract with `task_id: null`.
+- Files changed: `src/aiwf/cli/main.py`, `tests/test_cli.py`, `docs/current/module-task-list.md`, `docs/current/current-work-state.md`, `docs/current/implementation-status.md`, `docs/progress/change-log.md`
+- Verification: `PYTHONPATH=src python3 -m pytest tests/test_cli.py::test_verify_standalone_runs_gates -q`, `PYTHONPATH=src python3 -m pytest tests/test_cli.py -q`, and `PYTHONPATH=src python3 -m pytest tests/ -q`
+- Result: pass
+- Current docs updated: `docs/current/module-task-list.md`, `docs/current/current-work-state.md`, `docs/current/implementation-status.md`, `docs/progress/change-log.md`
+- Follow-ups: Recommended next task is now `TASK-INIT-002`.
+
+## 2026-03-13 01:35 - Align init output with target JSON contract
+
+- Summary: Changed `aiwf init` to return a machine-readable JSON payload with the stable `.ai` workspace, config, and state paths.
+- Files changed: `src/aiwf/cli/main.py`, `tests/test_cli.py`, `README.md`, `docs/reference/v2-refactoring-target.md`, `docs/current/module-task-list.md`, `docs/current/current-work-state.md`, `docs/current/implementation-status.md`, `docs/progress/change-log.md`
+- Verification: `PYTHONPATH=src python3 -m pytest tests/test_cli.py::test_init_creates_ai_directory -q` and `PYTHONPATH=src python3 -m pytest tests/test_cli.py -q`
+- Result: pass
+- Current docs updated: `README.md`, `docs/reference/v2-refactoring-target.md`, `docs/current/module-task-list.md`, `docs/current/current-work-state.md`, `docs/current/implementation-status.md`, `docs/progress/change-log.md`
+- Follow-ups: Recommended next task is now `TASK-LIFE-004`.

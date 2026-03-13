@@ -25,10 +25,10 @@ The repository's current CLI entrypoint is [src/aiwf/cli/main.py](/home/gloria/t
 
 Implemented commands:
 
-- `aiwf init`
+- `aiwf init` -> prints JSON with `workspace`, `config`, and `state` paths
 - `aiwf status`
 - `aiwf verify`
-- `aiwf task new --title "..." [--scope "..."] [--acceptance "..."] [--file path]...`
+- `aiwf task new "<title>" [--scope "..."] [--accept "..."] [--files "a.py,b.py"]`
 - `aiwf task start [task-id]`
 - `aiwf task current`
 - `aiwf task list [--status ...]`
@@ -58,6 +58,8 @@ For humans maintaining documentation, the current supporting files are:
 
 - `docs/README.md`
 - `docs/current/project-structure.md`
+- `docs/current/module-task-list.md`
+- `docs/current/current-work-state.md`
 - `docs/current/agent-development-loop.md`
 - `docs/current/implementation-status.md`
 

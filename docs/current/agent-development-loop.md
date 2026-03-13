@@ -23,17 +23,19 @@ From `AGENTS.md`, continue with this read order:
 1. `README.md`
 2. `docs/README.md`
 3. `docs/current/project-structure.md`
-4. `docs/current/agent-development-loop.md`
-5. `docs/current/implementation-status.md`
+4. `docs/current/module-task-list.md`
+5. `docs/current/current-work-state.md`
+6. `docs/current/agent-development-loop.md`
+7. `docs/current/implementation-status.md`
 
 Read this additional file when needed:
 
-6. `docs/reference/v2-refactoring-target.md`
+8. `docs/reference/v2-refactoring-target.md`
    Required when the task changes behavior that the v2 target already specifies, or when closing a target deviation.
 
 Read this additional file before closing the task:
 
-7. `docs/progress/change-log.md`
+9. `docs/progress/change-log.md`
    Read the latest entries to avoid duplicating or contradicting the most recent recorded state.
 
 After that, read only the relevant implementation paths:
@@ -54,6 +56,8 @@ The current guidance paths are stable and must not drift with dates:
 
 - `AGENTS.md`
 - `docs/current/project-structure.md`
+- `docs/current/module-task-list.md`
+- `docs/current/current-work-state.md`
 - `docs/current/agent-development-loop.md`
 - `docs/current/implementation-status.md`
 - `docs/reference/v2-refactoring-target.md`
@@ -138,6 +142,11 @@ When structure changes:
 - update read order references
 - remove conflicting guidance
 
+When roadmap or next-task selection changes:
+
+- update `docs/current/module-task-list.md`
+- update `docs/current/current-work-state.md`
+
 ### Step 4: Verify
 
 Run the relevant verification command for the change.
@@ -164,6 +173,10 @@ Update these files when applicable:
   When directory responsibilities, ownership, or read paths change.
 - `docs/current/agent-development-loop.md`
   When the required workflow, mandatory reads, or completion-record rules change.
+- `docs/current/module-task-list.md`
+  When modules, tasks, task ordering, dependencies, or task ownership change.
+- `docs/current/current-work-state.md`
+  When the active module, recommended next task, recently completed items, or blocked items change.
 - `docs/current/implementation-status.md`
   When implementation status, gaps, deviations, or completed work changes.
 - `docs/README.md`
@@ -222,6 +235,7 @@ Do not do these:
 - update code without updating affected current docs
 - finish a task without appending to `docs/progress/change-log.md`
 - start from a document other than `AGENTS.md`
+- change the next task without updating `docs/current/current-work-state.md`
 - use `.ai/plan.json` or `.ai/roles_workflow.json` as current repository guidance
 - update README with aspirational features
 - leave multiple conflicting workflow documents alive

@@ -79,6 +79,10 @@ These files guide humans and agents while developing the repository. They do not
 
 - `docs/current/project-structure.md`
   This file. Explains repository boundaries and active paths.
+- `docs/current/module-task-list.md`
+  User-capability-oriented module and task tree for ongoing development.
+- `docs/current/current-work-state.md`
+  Current focus, recommended next task, and active blockers.
 - `docs/current/agent-development-loop.md`
   Mandatory development loop for future agent sessions.
 - `docs/current/implementation-status.md`
@@ -146,6 +150,7 @@ Whenever repository state changes, update every affected current doc in place:
 
 - behavior change: update `README.md` and `docs/current/implementation-status.md`
 - path / ownership / layout change: update `docs/current/project-structure.md`
+- task decomposition / module map / recommended next task change: update `docs/current/module-task-list.md` and `docs/current/current-work-state.md`
 - workflow / read order / mandatory record behavior change: update `AGENTS.md`, `docs/README.md`, and `docs/current/agent-development-loop.md`
 - target-behavior change: update `docs/reference/v2-refactoring-target.md`
 

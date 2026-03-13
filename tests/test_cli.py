@@ -35,6 +35,13 @@ def test_init_creates_ai_directory(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.chdir(tmp_path)
     result = runner.invoke(app, ["init"])
     assert result.exit_code == 0
+    out = json.loads(result.output)
+    assert out == {
+        "ok": True,
+        "workspace": ".ai",
+        "config": ".ai/config.yaml",
+        "state": ".ai/state.json",
+    }
     assert (tmp_path / ".ai").is_dir()
     assert (tmp_path / ".ai" / "state.json").exists()
     assert (tmp_path / ".ai" / "config.yaml").exists()
@@ -70,12 +77,29 @@ def test_status_empty_workspace(tmp_path: Path, monkeypatch) -> None:
 def test_task_new_creates_spec(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["init"])
-    result = runner.invoke(app, ["task", "new", "--title", "Test task", "--scope", "x"])
+    result = runner.invoke(
+        app,
+        [
+            "task",
+            "new",
+            "Test task",
+            "--scope",
+            "x",
+            "--accept",
+            "works",
+            "--files",
+            "src/a.py,tests/test_a.py",
+        ],
+    )
     assert result.exit_code == 0
     out = json.loads(result.output)
     assert out["ok"] is True
     assert out["task_id"] == "task-001"
+    assert out["spec"] == ".ai/tasks/task-001/spec.json"
     assert (tmp_path / ".ai" / "tasks" / "task-001" / "spec.json").exists()
+    spec = json.loads((tmp_path / ".ai" / "tasks" / "task-001" / "spec.json").read_text(encoding="utf-8"))
+    assert spec["acceptance"] == "works"
+    assert spec["affected_files"] == ["src/a.py", "tests/test_a.py"]
 
 
 # ---------------------------------------------------------------------------
@@ -85,7 +109,7 @@ def test_task_new_creates_spec(tmp_path: Path, monkeypatch) -> None:
 def test_task_start_transitions_status(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["init"])
-    runner.invoke(app, ["task", "new", "--title", "Task A"])
+    runner.invoke(app, ["task", "new", "Task A"])
     result = runner.invoke(app, ["task", "start"])
     assert result.exit_code == 0
     out = json.loads(result.output)
@@ -109,7 +133,7 @@ def test_task_start_fails_when_none_defined(tmp_path: Path, monkeypatch) -> None
 def test_task_current_shows_active_task(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["init"])
-    runner.invoke(app, ["task", "new", "--title", "Active task"])
+    runner.invoke(app, ["task", "new", "Active task"])
     runner.invoke(app, ["task", "start"])
     result = runner.invoke(app, ["task", "current"])
     assert result.exit_code == 0
@@ -134,8 +158,8 @@ def test_task_current_fails_when_none_active(tmp_path: Path, monkeypatch) -> Non
 def test_task_list_shows_all_tasks(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["init"])
-    runner.invoke(app, ["task", "new", "--title", "Task 1"])
-    runner.invoke(app, ["task", "new", "--title", "Task 2"])
+    runner.invoke(app, ["task", "new", "Task 1"])
+    runner.invoke(app, ["task", "new", "Task 2"])
     result = runner.invoke(app, ["task", "list"])
     assert result.exit_code == 0
     out = json.loads(result.output)
@@ -150,7 +174,7 @@ def test_task_verify_passes_with_echo_gate(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["init"])
     _write_gates(tmp_path, {"pass_gate": _pass_gate_cmd()})
-    runner.invoke(app, ["task", "new", "--title", "Verify me"])
+    runner.invoke(app, ["task", "new", "Verify me"])
     runner.invoke(app, ["task", "start"])
     result = runner.invoke(app, ["task", "verify"])
     assert result.exit_code == 0
@@ -162,7 +186,7 @@ def test_task_verify_fails_with_failing_gate(tmp_path: Path, monkeypatch) -> Non
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["init"])
     _write_gates(tmp_path, {"fail_gate": _fail_gate_cmd()})
-    runner.invoke(app, ["task", "new", "--title", "Will fail"])
+    runner.invoke(app, ["task", "new", "Will fail"])
     runner.invoke(app, ["task", "start"])
     result = runner.invoke(app, ["task", "verify"])
     assert result.exit_code == 1
@@ -178,7 +202,7 @@ def test_task_close_after_verify(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["init"])
     _write_gates(tmp_path, {"pass_gate": _pass_gate_cmd()})
-    runner.invoke(app, ["task", "new", "--title", "Full flow"])
+    runner.invoke(app, ["task", "new", "Full flow"])
     runner.invoke(app, ["task", "start"])
     runner.invoke(app, ["task", "verify"])
     result = runner.invoke(app, ["task", "close"])
@@ -191,7 +215,7 @@ def test_task_close_after_verify(tmp_path: Path, monkeypatch) -> None:
 def test_task_close_rejects_without_verify(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["init"])
-    runner.invoke(app, ["task", "new", "--title", "No verify"])
+    runner.invoke(app, ["task", "new", "No verify"])
     runner.invoke(app, ["task", "start"])
     result = runner.invoke(app, ["task", "close"])
     assert result.exit_code != 0
@@ -206,7 +230,7 @@ def test_task_close_rejects_without_verify(tmp_path: Path, monkeypatch) -> None:
 def test_task_block_and_unblock(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["init"])
-    runner.invoke(app, ["task", "new", "--title", "Block me"])
+    runner.invoke(app, ["task", "new", "Block me"])
     runner.invoke(app, ["task", "start"])
 
     # Block
@@ -235,6 +259,15 @@ def test_verify_standalone_runs_gates(tmp_path: Path, monkeypatch) -> None:
     out = json.loads(result.output)
     assert out["all_passed"] is True
     assert "pass_gate" in out["gates"]
+    run_id = out["run_id"]
+    run_path = tmp_path / ".ai" / "runs" / run_id / "run.json"
+    assert run_path.exists()
+    run_record = json.loads(run_path.read_text(encoding="utf-8"))
+    assert run_record["run_id"] == run_id
+    assert run_record["task_id"] is None
+    assert run_record["ok"] is True
+    assert run_record["result"] == "pass"
+    assert "pass_gate" in run_record["gates"]
 
 
 def test_verify_standalone_fails_no_gates(tmp_path: Path, monkeypatch) -> None:
@@ -255,7 +288,7 @@ def test_full_cli_lifecycle(tmp_path: Path, monkeypatch) -> None:
     runner.invoke(app, ["init"])
     _write_gates(tmp_path, {"pass_gate": _pass_gate_cmd()})
 
-    runner.invoke(app, ["task", "new", "--title", "Lifecycle task"])
+    runner.invoke(app, ["task", "new", "Lifecycle task"])
     runner.invoke(app, ["task", "start"])
     runner.invoke(app, ["task", "verify"])
     runner.invoke(app, ["task", "close"])

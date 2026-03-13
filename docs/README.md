@@ -9,6 +9,8 @@ For agents, this file is **not** the entrypoint. Start from `../AGENTS.md` and f
 ### Current source of truth
 
 - `current/project-structure.md`
+- `current/module-task-list.md`
+- `current/current-work-state.md`
 - `current/agent-development-loop.md`
 - `current/implementation-status.md`
 

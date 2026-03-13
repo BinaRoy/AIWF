@@ -3,10 +3,9 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import typer
-from rich import print
 
 from aiwf.gate.gate_engine import GateEngine, GateSpec
 from aiwf.orchestrator.task_engine import TaskEngine, TaskStateError
@@ -46,7 +45,14 @@ def init() -> None:
     """Initialize .ai workspace layout in the current directory."""
     ws = AIWorkspace(_repo_root())
     ws.ensure_layout()
-    print("[green]Initialized .ai workspace[/green]")
+    _print_json(
+        {
+            "ok": True,
+            "workspace": ".ai",
+            "config": ".ai/config.yaml",
+            "state": ".ai/state.json",
+        }
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -68,22 +74,30 @@ def status_cmd() -> None:
 
 @task_app.command("new")
 def task_new(
-    title: str = typer.Option(..., "--title", help="Task title"),
+    title: str = typer.Argument(..., help="Task title"),
     scope: Optional[str] = typer.Option(None, "--scope", help="Scope description"),
-    acceptance: Optional[str] = typer.Option(None, "--acceptance", help="Acceptance criteria"),
-    file: Optional[List[str]] = typer.Option(None, "--file", help="Affected file path(s)"),
+    acceptance: Optional[str] = typer.Option(None, "--accept", help="Acceptance criteria"),
+    files: Optional[str] = typer.Option(None, "--files", help="Comma-separated affected file path(s)"),
 ) -> None:
     """Create a new task in 'defined' status."""
     ws = AIWorkspace(_repo_root())
     ws.ensure_layout()
     engine = _make_engine(ws)
+    affected_files = [part.strip() for part in (files or "").split(",") if part.strip()]
     spec = engine.new_task(
         title,
         scope=scope,
         acceptance=acceptance,
-        affected_files=list(file or []),
+        affected_files=affected_files,
     )
-    _print_json({"ok": True, "task_id": spec["task_id"], "status": spec["status"]})
+    _print_json(
+        {
+            "ok": True,
+            "task_id": spec["task_id"],
+            "status": spec["status"],
+            "spec": f".ai/tasks/{spec['task_id']}/spec.json",
+        }
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -251,6 +265,7 @@ def task_list(
 def verify_standalone() -> None:
     """Run configured gates without task context (ad-hoc gate check)."""
     import datetime as _dt
+    from aiwf.schema.json_validator import load_schema, validate_payload
     ws = AIWorkspace(_repo_root())
     ws.ensure_layout()
     cfg = ws.read_config()
@@ -269,6 +284,20 @@ def verify_standalone() -> None:
         results[name] = {"status": res.status, "exit_code": res.exit_code, "duration_seconds": res.duration_seconds}
         if res.status != "pass":
             all_passed = False
+
+    run_record = {
+        "run_id": run_id,
+        "timestamp": _dt.datetime.now(_dt.timezone.utc).isoformat(),
+        "task_id": None,
+        "result": "pass" if all_passed else "fail",
+        "ok": all_passed,
+        "gates": results,
+    }
+    validate_payload(run_record, load_schema(_repo_root(), "run_record.schema.json"))
+    (reports_dir / "run.json").write_text(
+        json.dumps(run_record, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
 
     out = {"ok": all_passed, "run_id": run_id, "all_passed": all_passed, "gates": results}
     _print_json(out)
