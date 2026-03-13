@@ -28,6 +28,8 @@ Primary source code:
   `.ai/` workspace layout and top-level state/config access.
 - `storage/task_store.py`
   Task file I/O for `spec.json`, `verify.json`, and `record.json`.
+- `storage/project_map_store.py`
+  Project map file I/O for `.ai/project_map.json` and module completion summaries.
 - `gate/gate_engine.py`
   Shell-command gate execution and gate report writing.
 - `schema/json_validator.py`
@@ -45,6 +47,7 @@ Persisted data contracts used by the implementation:
 - `state.schema.json`
 - `run_record.schema.json`
 - `gate_result.schema.json`
+- `project_map.schema.json`
 
 ### `tests/`
 
@@ -120,6 +123,7 @@ Under the current v2 implementation, the meaningful runtime structure is:
 - `.ai/tasks/<task-id>/spec.json`
 - `.ai/tasks/<task-id>/verify.json`
 - `.ai/tasks/<task-id>/record.json`
+- `.ai/project_map.json`
 - `.ai/runs/<run_id>/run.json`
 - `.ai/runs/<run_id>/<gate>.json`
 - `.ai/telemetry/events.jsonl`

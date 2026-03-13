@@ -4,9 +4,9 @@ Last updated: 2026-03-13
 
 **Target reference:** `docs/reference/v2-refactoring-target.md`  
 **Assessment basis:** code in `src/`, `schemas/`, `tests/`, `.github/workflows/`, `pyproject.toml`  
-**Overall completion:** ~95%  
+**Overall completion:** ~97%  
 **Latest verified full test command:** `PYTHONPATH=src python3 -m pytest tests/ -q`  
-**Latest verified result:** `84 passed`
+**Latest verified result:** `86 passed`
 
 ---
 
@@ -15,7 +15,7 @@ Last updated: 2026-03-13
 The v2 refactor is largely implemented. The new task lifecycle, simplified `.ai/` workspace, new schemas, and rewritten tests are present and working. The main remaining gaps are:
 
 1. CLI contract deviations from the target still exist.
-2. Only future-facing product expansion tasks remain in the tracked backlog.
+2. Only broader future-expansion tasks remain in the tracked backlog.
 
 ---
 
@@ -23,7 +23,7 @@ The v2 refactor is largely implemented. The new task lifecycle, simplified `.ai/
 
 | Step | Description | Status | Current Evidence |
 |------|-------------|--------|------------------|
-| 1.1 | New schemas | Complete | `task_spec`, `task_record`, `task_verify`, simplified `state`, simplified `run_record` are present |
+| 1.1 | New schemas | Complete | `task_spec`, `task_record`, `task_verify`, simplified `state`, simplified `run_record`, and `project_map` are present |
 | 1.2 | `task_store.py` pure I/O layer | Complete | Implemented and covered by `tests/test_task_store.py` |
 | 1.3 | `task_engine.py` state machine + gate orchestration | Complete | Implemented and covered by `tests/test_task_engine.py` |
 | 1.4 | Simplified `ai_workspace.py` | Complete | Layout, config, and state follow the v2 direction |
@@ -43,6 +43,7 @@ src/aiwf/gate/gate_engine.py
 src/aiwf/orchestrator/task_engine.py
 src/aiwf/schema/json_validator.py
 src/aiwf/storage/ai_workspace.py
+src/aiwf/storage/project_map_store.py
 src/aiwf/storage/task_store.py
 src/aiwf/telemetry/sink.py
 ```
@@ -51,6 +52,7 @@ src/aiwf/telemetry/sink.py
 
 ```text
 schemas/gate_result.schema.json
+schemas/project_map.schema.json
 schemas/run_record.schema.json
 schemas/state.schema.json
 schemas/task_record.schema.json
@@ -83,6 +85,7 @@ The following behavior is implemented and covered by tests:
 8. `aiwf status` returns current task summary, task counts, and last verify summary including timestamp.
 9. Standalone `aiwf verify` runs configured gates outside task context.
 10. Packaging metadata uses `src/` package discovery and CI exercises installed `aiwf` smoke commands.
+11. `aiwf map init/add/link/show` persists and displays module-level task completion under `.ai/project_map.json`.
 
 ---
 
@@ -92,7 +95,6 @@ The following behavior is implemented and covered by tests:
 
 The remaining tracked work in `docs/current/module-task-list.md` is future-facing:
 
-- `TASK-STATE-003`
 - `TASK-FUTURE-001`
 - `TASK-FUTURE-002`
 - `TASK-FUTURE-003`

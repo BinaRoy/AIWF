@@ -6,6 +6,7 @@ The current implementation is the v2 refactor in progress. What is implemented t
 
 - `.ai/` workspace initialization
 - task lifecycle records under `.ai/tasks/`
+- project map records under `.ai/project_map.json`
 - gate execution and verification evidence under `.ai/runs/`
 - task state transitions: `defined -> in_progress -> verifying -> done/failed/blocked`
 - JSON schema validation for persisted records
@@ -13,7 +14,6 @@ The current implementation is the v2 refactor in progress. What is implemented t
 
 What is **not** implemented today:
 
-- project map / feature map
 - project onboarding scan
 - git automation
 - multi-agent orchestration
@@ -37,6 +37,10 @@ Implemented commands:
 - `aiwf task block [task-id] --reason "..."`
 - `aiwf task unblock <task-id>`
 - `aiwf task retry [task-id]`
+- `aiwf map init`
+- `aiwf map add <module-id> "<title>" [--description "..."]`
+- `aiwf map link <module-id> <task-id>`
+- `aiwf map show`
 
 ## Repository Layout
 

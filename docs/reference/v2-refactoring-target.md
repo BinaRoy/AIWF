@@ -38,6 +38,10 @@ The target active CLI surface is:
 - `aiwf task block [task-id] --reason "..."`
 - `aiwf task unblock [task-id]`
 - `aiwf task retry [task-id]`
+- `aiwf map init`
+- `aiwf map add <module-id> "<title>" [--description "..."]`
+- `aiwf map link <module-id> <task-id>`
+- `aiwf map show`
 
 The target machine-readable init payload is:
 
@@ -75,6 +79,7 @@ The target workspace layout is:
       spec.json
       verify.json
       record.json
+  project_map.json
   runs/
     <run_id>/
       run.json
@@ -91,6 +96,7 @@ The target data-contract direction is:
 - simplified `state.schema.json`
 - simplified `run_record.schema.json`
 - retained `gate_result.schema.json`
+- `project_map.schema.json`
 
 The target packaging and CI direction is:
 

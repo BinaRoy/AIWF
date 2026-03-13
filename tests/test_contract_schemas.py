@@ -252,3 +252,32 @@ def test_gate_result_schema_rejects_missing_environment() -> None:
     del p["environment"]
     with pytest.raises(Exception):
         validate_payload(p, _schema("gate_result.schema.json"))
+
+
+# ---------------------------------------------------------------------------
+# project_map.schema.json
+# ---------------------------------------------------------------------------
+
+def _valid_project_map() -> dict:
+    return {
+        "version": "0.1",
+        "modules": [
+            {
+                "module_id": "core",
+                "title": "Core module",
+                "description": None,
+                "task_ids": ["task-001", "task-002"],
+            }
+        ],
+    }
+
+
+def test_project_map_schema_accepts_valid_payload() -> None:
+    validate_payload(_valid_project_map(), _schema("project_map.schema.json"))
+
+
+def test_project_map_schema_rejects_missing_module_id() -> None:
+    payload = _valid_project_map()
+    del payload["modules"][0]["module_id"]
+    with pytest.raises(Exception):
+        validate_payload(payload, _schema("project_map.schema.json"))

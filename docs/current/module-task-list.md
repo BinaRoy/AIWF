@@ -147,7 +147,7 @@ Priority values:
 ## M4. Inspect Current State
 
 **Goal:** A developer can tell what task is active, what recently passed verification, and what remains to be built.  
-**Status summary:** Task counts and current task summary exist; project-wide module visibility is still missing.
+**Status summary:** Task counts, current task summary, and project-map-backed module visibility are now available.
 
 ### Tasks
 
@@ -169,10 +169,10 @@ Priority values:
 
 - `TASK-STATE-003`
   Title: Add project map / feature map capability to product
-  Status: `defined`
+  Status: `done`
   Priority: `P3`
   Depends on: `TASK-STATE-001`
-  Maps to: future `docs/reference/v2-refactoring-target.md`, future code under `src/aiwf/`
+  Maps to: `cli/main.py`, `storage/project_map_store.py`, `schemas/project_map.schema.json`, `tests/test_cli.py`, `tests/test_contract_schemas.py`, `docs/reference/v2-refactoring-target.md`
   Done when: AIWF can persist and display project/module completion beyond flat task counts
 
 ---
@@ -213,7 +213,7 @@ Priority values:
 ## M6. Extend Beyond Current v2 Core
 
 **Goal:** Capture future-facing AIWF capability areas without confusing them with current v2 scope.  
-**Status summary:** Future modules are explicitly tracked but not active for immediate implementation.
+**Status summary:** Basic project-map support exists; the remaining tracked items are broader future-expansion areas.
 
 ### Tasks
 

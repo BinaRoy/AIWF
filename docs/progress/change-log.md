@@ -93,3 +93,12 @@ Every completed task must append one factual entry here after code/docs updates 
 - Result: pass
 - Current docs updated: `docs/reference/v2-refactoring-target.md`, `docs/current/module-task-list.md`, `docs/current/current-work-state.md`, `docs/current/implementation-status.md`, `docs/progress/change-log.md`
 - Follow-ups: Recommended next task is now `TASK-STATE-003`.
+
+## 2026-03-13 03:05 - Add project map capability
+
+- Summary: Added `.ai/project_map.json` support with `aiwf map init/add/link/show`, allowing AIWF to persist modules and display module-level task completion beyond flat task counts.
+- Files changed: `src/aiwf/cli/main.py`, `src/aiwf/storage/project_map_store.py`, `schemas/project_map.schema.json`, `tests/test_cli.py`, `tests/test_contract_schemas.py`, `README.md`, `docs/current/project-structure.md`, `docs/reference/v2-refactoring-target.md`, `docs/current/module-task-list.md`, `docs/current/current-work-state.md`, `docs/current/implementation-status.md`, `docs/progress/change-log.md`
+- Verification: `PYTHONPATH=src python3 -m pytest tests/test_cli.py tests/test_contract_schemas.py -q`
+- Result: pass
+- Current docs updated: `README.md`, `docs/current/project-structure.md`, `docs/reference/v2-refactoring-target.md`, `docs/current/module-task-list.md`, `docs/current/current-work-state.md`, `docs/current/implementation-status.md`, `docs/progress/change-log.md`
+- Follow-ups: Recommended next task is now `TASK-FUTURE-001`.

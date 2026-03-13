@@ -10,12 +10,15 @@ import typer
 from aiwf.gate.gate_engine import GateEngine, GateSpec
 from aiwf.orchestrator.task_engine import TaskEngine, TaskStateError
 from aiwf.storage.ai_workspace import AIWorkspace
+from aiwf.storage.project_map_store import add_module, init_project_map, link_task, summarize_project_map
 from aiwf.storage.task_store import list_tasks
 from aiwf.telemetry.sink import TelemetrySink
 
 app = typer.Typer(add_completion=False, help="AIWF — AI Workflow Framework")
 task_app = typer.Typer(add_completion=False, help="Task lifecycle commands")
+map_app = typer.Typer(add_completion=False, help="Project map commands")
 app.add_typer(task_app, name="task")
+app.add_typer(map_app, name="map")
 
 
 def _repo_root() -> Path:
@@ -253,6 +256,61 @@ def task_list(
     if status:
         tasks = [t for t in tasks if t.get("status") == status]
     _print_json({"tasks": tasks, "count": len(tasks)})
+
+
+# ---------------------------------------------------------------------------
+# aiwf map
+# ---------------------------------------------------------------------------
+
+@map_app.command("init")
+def map_init() -> None:
+    """Initialize the optional project map file."""
+    ws = AIWorkspace(_repo_root())
+    ws.ensure_layout()
+    payload = init_project_map(ws, _repo_root())
+    _print_json({"ok": True, "path": ".ai/project_map.json", "modules": len(payload["modules"])})
+
+
+@map_app.command("add")
+def map_add(
+    module_id: str = typer.Argument(..., help="Module ID"),
+    title: str = typer.Argument(..., help="Module title"),
+    description: Optional[str] = typer.Option(None, "--description", help="Module description"),
+) -> None:
+    """Add a module to the project map."""
+    ws = AIWorkspace(_repo_root())
+    ws.ensure_layout()
+    try:
+        module = add_module(ws, _repo_root(), module_id=module_id, title=title, description=description)
+    except (FileNotFoundError, ValueError) as exc:
+        _exit_contract_error({"ok": False, "error": _error_message(exc)})
+    _print_json({"ok": True, "module_id": module["module_id"], "task_ids": module["task_ids"]})
+
+
+@map_app.command("link")
+def map_link(
+    module_id: str = typer.Argument(..., help="Module ID"),
+    task_id: str = typer.Argument(..., help="Task ID"),
+) -> None:
+    """Link a task into a project module."""
+    ws = AIWorkspace(_repo_root())
+    ws.ensure_layout()
+    try:
+        module = link_task(ws, _repo_root(), module_id=module_id, task_id=task_id)
+    except (FileNotFoundError, ValueError) as exc:
+        _exit_contract_error({"ok": False, "error": _error_message(exc)})
+    _print_json({"ok": True, "module_id": module["module_id"], "task_id": task_id, "linked": True})
+
+
+@map_app.command("show")
+def map_show() -> None:
+    """Display the persisted project map with module task completion."""
+    ws = AIWorkspace(_repo_root())
+    ws.ensure_layout()
+    try:
+        _print_json(summarize_project_map(ws, _repo_root()))
+    except FileNotFoundError as exc:
+        _exit_contract_error({"ok": False, "error": _error_message(exc)})
 
 
 # ---------------------------------------------------------------------------

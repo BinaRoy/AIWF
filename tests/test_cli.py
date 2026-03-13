@@ -91,6 +91,58 @@ def test_status_includes_last_verify_timestamp(tmp_path: Path, monkeypatch) -> N
 
 
 # ---------------------------------------------------------------------------
+# map
+# ---------------------------------------------------------------------------
+
+def test_map_init_creates_project_map(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init"])
+
+    result = runner.invoke(app, ["map", "init"])
+
+    assert result.exit_code == 0
+    out = json.loads(result.output)
+    assert out == {
+        "ok": True,
+        "path": ".ai/project_map.json",
+        "modules": 0,
+    }
+    assert (tmp_path / ".ai" / "project_map.json").exists()
+
+
+def test_map_show_reports_module_task_completion(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init"])
+    _write_gates(tmp_path, {"pass_gate": _pass_gate_cmd()})
+
+    runner.invoke(app, ["task", "new", "Done task"])
+    runner.invoke(app, ["task", "new", "Defined task"])
+    runner.invoke(app, ["task", "start", "task-001"])
+    runner.invoke(app, ["task", "verify", "task-001"])
+    runner.invoke(app, ["task", "close", "task-001"])
+
+    runner.invoke(app, ["map", "init"])
+    runner.invoke(app, ["map", "add", "core", "Core module"])
+    runner.invoke(app, ["map", "link", "core", "task-001"])
+    runner.invoke(app, ["map", "link", "core", "task-002"])
+
+    result = runner.invoke(app, ["map", "show"])
+
+    assert result.exit_code == 0
+    out = json.loads(result.output)
+    assert out["count"] == 1
+    module = out["modules"][0]
+    assert module["module_id"] == "core"
+    assert module["title"] == "Core module"
+    assert module["task_ids"] == ["task-001", "task-002"]
+    assert module["task_counts"]["total"] == 2
+    assert module["task_counts"]["done"] == 1
+    assert module["task_counts"]["defined"] == 1
+    assert module["completion"]["done"] == 1
+    assert module["completion"]["total"] == 2
+
+
+# ---------------------------------------------------------------------------
 # task new
 # ---------------------------------------------------------------------------
 
